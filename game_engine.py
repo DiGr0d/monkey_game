@@ -12,9 +12,11 @@ class Game_engine:
     BLACK = (0, 0, 0)
     GRAY = (200, 200, 200)
     BLUE = (100, 100, 255)
+    ALPHA_GRAY = (64, 64, 64, 128)
 
     states = ["menu", "game"]
     states_state = {"menu": ["main_menu", "load_game_menu", "settings"], "game": ["paused", "running"]}
+
 
     def __init__(self):
         Game_engine.count += 1
@@ -25,28 +27,48 @@ class Game_engine:
         print("Поверхность экрана:", self.screen)
         print("Размер:", self.screen.get_size())
         self.runs = False
-        self.current_process = menu.Menu(self)
-        self.current_process.switch_on()
+        self.current_processes = []
   
     def run(self):
         clock = pygame.time.Clock()
         self.runs = True
-        while self.runs is True:
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    self.runs = False
-                elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                    mouse_pos = event.pos
-                    self.current_process.process_click(mouse_pos)()
-                elif event.type == pygame.VIDEORESIZE:
-                    self.current_process.resize_object()
+        menu1 = menu.Menu(self, x=0,y=0,width=self.screen.get_width()/2)
+        menu2 = menu.Menu(self, x=self.screen.get_width()/2)
+        self.current_processes.append(menu1)
+        self.current_processes.append(menu2)
+        for process in self.current_processes:
+            process.switch_on()
+        try:
+            while self.runs:
+                for event in pygame.event.get():
+                    if event.type == pygame.QUIT:
+                        self.runs = False
+                    elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                        self.update_mouse_event(event)
+                    elif event.type == pygame.VIDEORESIZE:
+                        self.resize_every_process()
+                    
+                for process in self.current_processes:
+                    process.show()
                 
-            if self.current_process.name == "menu":
-                self.current_process.show() 
-            
-            pygame.display.flip()
-            clock.tick(60)
+                pygame.display.flip()
+                clock.tick(60)
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            self.runs = False
 
+    def update_mouse_event(self, event):
+        mouse_pos = event.pos
+        gen = (process.process_click(mouse_pos) for process in self.current_processes)
+        for click_ev in gen:
+            if click_ev:
+                click_ev()
+
+    def resize_every_process(self):
+        nw, nh = self.screen.get_size()
+        for process in self.current_processes:
+            process.update_geometry(nw, nh)
 
 def main():
     try:
