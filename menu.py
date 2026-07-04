@@ -14,6 +14,20 @@ class Menu:
         width, height = game_engine.screen.get_size()
         self.height_indent =  height * 0.05
 
+        self.with_indent = 0
+        self.spacing = 0
+        self.button_width = 0
+        self.button_heigth = 0
+        self.calculate_button_sizes()
+
+    #эта функция должна быть у всех отображаемых объектов
+    def resize_object(self):
+        self.calculate_button_sizes()
+
+    def calculate_button_sizes(self):
+        width, height = self.game_engine.screen.get_size()
+        self.height_indent =  height * 0.05
+
         self.with_indent = width * 0.2
         num_buttons = len(Menu.buttons)
         

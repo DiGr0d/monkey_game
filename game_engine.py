@@ -38,6 +38,8 @@ class Game_engine:
                 elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                     mouse_pos = event.pos
                     self.current_process.process_click(mouse_pos)()
+                elif event.type == pygame.VIDEORESIZE:
+                    self.current_process.resize_object()
                 
             if self.current_process.name == "menu":
                 self.current_process.show() 
