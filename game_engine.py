@@ -41,12 +41,14 @@ class Game_engine:
         clock = pygame.time.Clock()
         self.runs = True
         #grid = game.GameGrid(t_width=10, t_height=10, game_engine=self, x=0,y=0,w=Game_engine.SCREEN_WIDTH,h=Game_engine.SCREEN_HEIGHT)
-        try:
-            menu1 = game.MapMaker(self, None)
-        except Exception as e:
-            import traceback
-            traceback.print_exc()
-            self.runs = False
+        # try:
+        #     menu1 = game.MapMaker(self, None)
+        # except Exception as e:
+        #     import traceback
+        #     traceback.print_exc()
+        #     self.runs = False
+        from menus import MainMenu
+        menu1 = MainMenu(self, x=0, y=0, width=self.screen.get_width(), height=self.screen.get_height())
         #menu1 = menu.Menu(self, x=0,y=0,width=self.screen.get_width()/2)
         #menu2 = menu.Menu(self, x=self.screen.get_width()/2)
         #self.current_processes.append(menu1)
