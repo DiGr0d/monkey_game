@@ -1,5 +1,6 @@
 import pygame
 import menu
+import game
 print("type(menu.Menu) =", type(menu.Menu))
 
 class Game_engine:
@@ -23,6 +24,7 @@ class Game_engine:
         if Game_engine.count > 1:
             print("SOMETHING GOES WRONG MORE THAN 1 GAME ENGINE GENERATED")
         self.screen = pygame.display.set_mode((self.SCREEN_WIDTH, self.SCREEN_HEIGHT), pygame.RESIZABLE)
+        game.load_tile_images() 
         print("Дисплей инициализирован:", pygame.display.get_init())
         print("Поверхность экрана:", self.screen)
         print("Размер:", self.screen.get_size())
@@ -32,13 +34,24 @@ class Game_engine:
     def get_processes(self):
         return self.current_processes
   
+    def add_process(self, process):
+        self.current_processes.append(process)
+
     def run(self):
         clock = pygame.time.Clock()
         self.runs = True
-        menu1 = menu.Menu(self, x=0,y=0,width=self.screen.get_width()/2)
-        menu2 = menu.Menu(self, x=self.screen.get_width()/2)
+        #grid = game.GameGrid(t_width=10, t_height=10, game_engine=self, x=0,y=0,w=Game_engine.SCREEN_WIDTH,h=Game_engine.SCREEN_HEIGHT)
+        try:
+            menu1 = game.MapMaker(self, None)
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            self.runs = False
+        #menu1 = menu.Menu(self, x=0,y=0,width=self.screen.get_width()/2)
+        #menu2 = menu.Menu(self, x=self.screen.get_width()/2)
+        #self.current_processes.append(menu1)
+        #self.current_processes.append(menu2)
         self.current_processes.append(menu1)
-        self.current_processes.append(menu2)
         for process in self.current_processes:
             process.switch_on()
         try:
@@ -68,6 +81,10 @@ class Game_engine:
             process.process_event(event)
 
     def resize_every_process(self):
+        now = pygame.time.get_ticks()
+        if hasattr(self, '_last_resize_time') and now - self._last_resize_time < 50:
+            return
+        self._last_resize_time = now
         nw, nh = self.screen.get_size()
         for process in self.current_processes:
             process.update_geometry(nw, nh)

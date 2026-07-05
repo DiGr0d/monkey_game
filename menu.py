@@ -2,16 +2,15 @@ import pygame
 
 class Menu:
     name = "menu"
-    works = False
     # то как расположены кнопки зависит от отступов(типа масштабирование для области внутри отступов)
     # пока что кнопки расположены сверху вниз(возможно потом будет по-другому)
     def __init__(self, game_engine, **kwargs):
-        self.button_rects = {} # position of left upper corner of every button (sorted by names)
-        self.buttons = [{"name": "button1", "callback": lambda : print("button1 pressed")},
-               {"name": "quit", "callback": lambda: print("button2 presed")},
-               {"name": "negr", "callback": lambda: print("negr")},
-               {"name": "govno", "callback": lambda: print("govno")}] # must provede a dict of {"name": ..., "callback": ...}
+        self.buttons = []#[{"name": "button1", "callback": lambda : print("button1 pressed")},
+              # {"name": "quit", "callback": lambda: print("button2 presed")},
+               #{"name": "negr", "callback": lambda: print("negr")},
+               #{"name": "govno", "callback": lambda: print("govno")}] # must provede a dict of {"name": ..., "callback": ...}
         
+        self.works = False
         self.obj_name = "undefined"
         self.game_engine = game_engine
         width, height = game_engine.screen.get_size()
@@ -26,13 +25,15 @@ class Menu:
         self.resize_object(x=self.x,y=self.y,width=self.w,height=self.h)
 
     def get_buttons(self):
-        return self.buttons()
+        return self.buttons
 
     #эта функция должна быть у всех отображаемых объектов
     def resize_object(self, **kwargs):
         self.calculate_button_sizes(**kwargs)
 
     def update_geometry(self, screen_width, screen_height):
+        if not self.works:
+            return
         if self.w < 10:
             self.w = 10
         if self.h < 10:
@@ -71,10 +72,19 @@ class Menu:
         self.spacing = self.h * 0.2 / (1 if num_buttons <= 1 else num_buttons)
         self.button_width = self.w - self.with_indent * 2
         self.button_heigth = (self.h * 0.8 - self.height_indent * 2) / num_buttons
-
     #required in shawable classes
     def get_pos(self):
         return (self.x, self.y)
+
+    def get_size(self):
+        return (self.w, self.h)
+
+    def get_engine(self):
+        return self.game_engine
+
+    def add_button(self, button):
+        self.buttons.append(button)
+        self.resize_object()
 
     def scale(self, **kwargs):
         resize_pos = kwargs.get("pos_too", False)
@@ -86,9 +96,17 @@ class Menu:
             self.x *= scale_x
             self.y *= scale_y
         #print(type(self.resize_object))
-        self.resize_object(x=self.x, y=self.y, height=self.h, width=self.w)
+        screen_w, screen_h = self.game_engine.screen.get_size()
+        self.rel_x = self.x / screen_w if screen_w else 0
+        self.rel_y = self.y / screen_h if screen_h else 0
+        self.rel_w = self.w / screen_w if screen_w else 0
+        self.rel_h = self.h / screen_h if screen_h else 0
+        self.resize_object(x=self.x, y=self.y, height=self.h, width=self.w) 
+    
 
     def process_event(self, event):
+        if not self.works:
+            return
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             mouse_pos = event.pos
             callback = self.process_click(mouse_pos)
@@ -102,7 +120,7 @@ class Menu:
         x, y = pos
         if not all(isinstance(a, int) for a in pos):
             raise ValueError("Every tuple element must be an integar in process_click function of menu class")
-        
+        print("vast govno")
         x_pos = self.with_indent + self.x
         y_pos = self.height_indent + self.y
         x_right_pos = self.x + self.w - self.with_indent
@@ -139,24 +157,24 @@ class Menu:
 
     def show(self):
         if not self.works:
-            raise Exception("Trying to show switched off menu")
+            return
         if self.w <= 0 or self.h <= 0:
             return
 
         scr = self.game_engine.screen
         scrrect = pygame.Rect(self.x, self.y, self.w, self.h)
-        background_color = None
         if scrrect.collidepoint(pygame.mouse.get_pos()):
             color = self.game_engine.WHITE
         else:
             color = self.game_engine.ALPHA_GRAY
-    
-        pygame.draw.rect(scr, color , scrrect)
+
+        pygame.draw.rect(scr, color, scrrect)
         font = pygame.font.Font(None, 26)
         num_buttons = len(self.buttons)
         pos_x = self.with_indent + self.x
         pos_y = self.height_indent + self.y
-        rect_hei = (self.spacing + self.button_heigth)
+        rect_hei = self.spacing + self.button_heigth
+
         for i in range(num_buttons):
             rect = (pos_x, pos_y, self.button_width, self.button_heigth)
             prect = pygame.Rect(rect)
@@ -168,7 +186,7 @@ class Menu:
 
             pygame.draw.rect(scr, color, rect)
             pygame.draw.rect(scr, self.game_engine.BLACK, rect, 1)
-            
+
             button = self.buttons[i]
 
             text_surface = font.render(button["name"], True, self.game_engine.BLACK)
