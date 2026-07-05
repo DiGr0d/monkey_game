@@ -25,6 +25,9 @@ class Menu:
         self.rel_h = self.h / height
         self.resize_object(x=self.x,y=self.y,width=self.w,height=self.h)
 
+    def get_buttons(self):
+        return self.buttons()
+
     #эта функция должна быть у всех отображаемых объектов
     def resize_object(self, **kwargs):
         self.calculate_button_sizes(**kwargs)
@@ -59,16 +62,20 @@ class Menu:
         self.with_indent = self.w * 0.2
         num_buttons = len(self.buttons)
         
-        num_buttons = num_buttons if num_buttons != 0 else 1
-        self.spacing = self.h * 0.2 / (1 if num_buttons <= 1 else num_buttons)
+        if num_buttons == 0:
+            self.spacing=0
+            self.button_width=0
+            self.button_heigth=0
+            return 
 
+        self.spacing = self.h * 0.2 / (1 if num_buttons <= 1 else num_buttons)
         self.button_width = self.w - self.with_indent * 2
         self.button_heigth = (self.h * 0.8 - self.height_indent * 2) / num_buttons
 
     #required in shawable classes
     def get_pos(self):
         return (self.x, self.y)
-    
+
     def scale(self, **kwargs):
         resize_pos = kwargs.get("pos_too", False)
         scale_x, scale_y = kwargs.get("scale_x", 1), kwargs.get("scale_y", 1)
@@ -81,6 +88,13 @@ class Menu:
         #print(type(self.resize_object))
         self.resize_object(x=self.x, y=self.y, height=self.h, width=self.w)
 
+    def process_event(self, event):
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            mouse_pos = event.pos
+            callback = self.process_click(mouse_pos)
+            if callback:
+                callback()
+            
 #finds rect where the mouse was clicked(supposed to do nothing if click landed on spacing returns False in that case)
     def process_click(self, pos):
         if len(pos) != 2:
@@ -96,7 +110,7 @@ class Menu:
 
         x_landed = True if x > x_pos and x < x_right_pos else False
         y_landed = True if y > y_pos and y < y_down_pos else False
-        
+       
         if not (x_landed and y_landed):
             return None
         
@@ -108,6 +122,7 @@ class Menu:
         y_pos += rect_num * rect_hei
         if y_pos + self.button_heigth < y:
             return None
+
         return self.buttons[rect_num]["callback"]
         
     def object_name(self):
@@ -132,9 +147,9 @@ class Menu:
         scrrect = pygame.Rect(self.x, self.y, self.w, self.h)
         background_color = None
         if scrrect.collidepoint(pygame.mouse.get_pos()):
-            color = self.game_engine.ALPHA_GRAY
-        else:
             color = self.game_engine.WHITE
+        else:
+            color = self.game_engine.ALPHA_GRAY
     
         pygame.draw.rect(scr, color , scrrect)
         font = pygame.font.Font(None, 26)
@@ -147,9 +162,9 @@ class Menu:
             prect = pygame.Rect(rect)
 
             if prect.collidepoint(pygame.mouse.get_pos()):
-                color = self.game_engine.GRAY
-            else:
                 color = self.game_engine.BLUE
+            else:
+                color = self.game_engine.GRAY
 
             pygame.draw.rect(scr, color, rect)
             pygame.draw.rect(scr, self.game_engine.BLACK, rect, 1)
@@ -161,4 +176,3 @@ class Menu:
             scr.blit(text_surface, text_rect)
             pos_y += rect_hei
         
-            

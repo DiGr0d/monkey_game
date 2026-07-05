@@ -28,6 +28,9 @@ class Game_engine:
         print("Размер:", self.screen.get_size())
         self.runs = False
         self.current_processes = []
+
+    def get_processes(self):
+        return self.current_processes
   
     def run(self):
         clock = pygame.time.Clock()
@@ -43,9 +46,9 @@ class Game_engine:
                 for event in pygame.event.get():
                     if event.type == pygame.QUIT:
                         self.runs = False
-                    elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                        self.update_mouse_event(event)
-                    elif event.type == pygame.VIDEORESIZE:
+                        break
+                    self.update_event(event)
+                    if event.type == pygame.VIDEORESIZE:
                         self.resize_every_process()
                     
                 for process in self.current_processes:
@@ -58,12 +61,11 @@ class Game_engine:
             traceback.print_exc()
             self.runs = False
 
-    def update_mouse_event(self, event):
-        mouse_pos = event.pos
-        gen = (process.process_click(mouse_pos) for process in self.current_processes)
-        for click_ev in gen:
-            if click_ev:
-                click_ev()
+    def update_event(self, event):
+        #mouse_pos = event.pos
+        #gen = (process.process_click(mouse_pos) for process in self.current_processes)
+        for process in self.current_processes:
+            process.process_event(event)
 
     def resize_every_process(self):
         nw, nh = self.screen.get_size()
