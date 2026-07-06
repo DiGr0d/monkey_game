@@ -34,7 +34,7 @@ class Tile:
 
     def get_grid(self):
         return self.grid
-    
+
     def get_pos(self):
         return(self.x, self.y)
 
@@ -72,6 +72,10 @@ class GameTile(Tile):
         if img is None:
             raise ValueError(f"No loaded image for tile type {tile_type}")
         return img
+
+    def rotate(self):
+        self.facing += 1
+        self.facing &= 3
 
     def update_scale(self, tile_w, tile_h):
         if tile_w <= 0 or tile_h <= 0:
@@ -340,7 +344,7 @@ class TileMenu(menu.Menu):
         if self.replace_menu:
             self.replace_menu.show()
     def process_click(self, pos):
-        tx, ty = self.get_pos()
+        tx, ty = self.get_pos() 
         tw, th = self.get_size()
         rect = pygame.Rect(tx, ty, tw, th)
         if self.replace_menu and not rect.collidepoint(pos) :
