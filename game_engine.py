@@ -2,6 +2,12 @@ import pygame
 import menu
 import game
 #print("type(menu.Menu) =", type(menu.Menu))
+import game_widget
+import object
+import menus
+print("type(menu.Menu) =", type(menu.Menu))
+
+
 
 class Game_engine:
 
@@ -40,24 +46,26 @@ class Game_engine:
     def run(self):
         clock = pygame.time.Clock()
         self.runs = True
-        #grid = game.GameGrid(t_width=10, t_height=10, game_engine=self, x=0,y=0,w=Game_engine.SCREEN_WIDTH,h=Game_engine.SCREEN_HEIGHT)
-        # try:
-        #     menu1 = game.MapMaker(self, None)
-        # except Exception as e:
-        #     import traceback
-        #     traceback.print_exc()
-        #     self.runs = False
+
         from menus import MainMenu
-        menu1 = MainMenu(self, x=0, y=0, width=self.screen.get_width(), height=self.screen.get_height())
-        #menu1 = menu.Menu(self, x=0,y=0,width=self.screen.get_width()/2)
-        #menu2 = menu.Menu(self, x=self.screen.get_width()/2)
-        #self.current_processes.append(menu1)
-        #self.current_processes.append(menu2)
-        self.current_processes.append(menu1)
+        #menu1 = MainMenu(self, x=0, y=0, width=self.screen.get_width(), height=self.screen.get_height())
+        try:
+            main_menu = menus.MainMenu(self, x=0, y=0, width=self.screen.get_width(), height=self.screen.get_height())
+            #gw = game_widget.GameWidget(self, x=0, y=0, width=self.screen.get_width(), height=self.screen.get_height())
+            #gw.add_mob(object.Mob(gw.game.grid, (1, 1)))
+            #gw.add_tower(object.Tower(gw.game.grid, (10, 10)))
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            self.runs = False
+        self.current_processes.append(main_menu)
         for process in self.current_processes:
             process.switch_on()
+
         try:
             while self.runs:
+                dt = clock.tick(60) / 1000.0   # время в секунда
+
                 for event in pygame.event.get():
                     if event.type == pygame.QUIT:
                         self.runs = False
@@ -65,12 +73,20 @@ class Game_engine:
                     self.update_event(event)
                     if event.type == pygame.VIDEORESIZE:
                         self.resize_every_process()
-                    
+
+                for process in self.current_processes:
+                    print(type(process).__name__)
+                # Обновляем GameWidget-ы перед отрисовкой
+                for process in self.current_processes:
+                    if isinstance(process, game_widget.GameWidget):   # проверяем, что это наш виджет
+                        process.update(dt)
+
+                # Отрисовка
                 for process in self.current_processes:
                     process.show()
-                
+
                 pygame.display.flip()
-                clock.tick(60)
+
         except Exception as e:
             import traceback
             traceback.print_exc()

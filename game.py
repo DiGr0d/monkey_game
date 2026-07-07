@@ -5,6 +5,9 @@ import os
 import time
 from enum import Enum
 
+def d_game():
+    pass
+
 # Кеш для загруженных изображений
 _tile_images = {}
 
@@ -37,7 +40,7 @@ class Tile:
 
     def get_grid(self):
         return self.grid
-    
+
     def get_pos(self):
         return(self.x, self.y)
 
@@ -76,6 +79,10 @@ class GameTile(Tile):
             raise ValueError(f"No loaded image for tile type {tile_type}")
         return img
 
+    def rotate(self):
+        self.facing += 1
+        self.facing &= 3
+
     def update_scale(self, tile_w, tile_h):
         if tile_w <= 0 or tile_h <= 0:
             self.scaled_image = None
@@ -84,13 +91,17 @@ class GameTile(Tile):
         self.scaled_image = pygame.transform.scale(original, (int(tile_w), int(tile_h)))
 
     def fill(self, px, py, pw, ph, screen):
+        if pw <= 0 or ph <= 0:
+            return
+        
+        if (self.scaled_image is None or 
+            self.scaled_image.get_width() != pw or 
+            self.scaled_image.get_height() != ph):
+            self.update_scale(pw, ph)
+
         if self.scaled_image is None:
-            if pw > 0 and ph > 0:
-                self.update_scale(pw, ph)
-            else:
-                return  
-        if self.scaled_image is None:
-            return  
+            return
+
         screen.blit(self.scaled_image, (px, py))
 
     def add_mob(self):
@@ -381,7 +392,7 @@ class TileMenu(menu.Menu):
         if self.replace_menu:
             self.replace_menu.show()
     def process_click(self, pos):
-        tx, ty = self.get_pos()
+        tx, ty = self.get_pos() 
         tw, th = self.get_size()
         rect = pygame.Rect(tx, ty, tw, th)
         if self.replace_menu and not rect.collidepoint(pos) :
