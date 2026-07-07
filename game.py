@@ -582,6 +582,7 @@ class MapMaker:
     def exit(self):
         if self.starting_process is not None:
             self.starting_process.switch_on()
+            print(type(self.starting_process).__name__)
             processes = self.game_engine.get_processes()
             if self in processes:
                 processes.remove(self)

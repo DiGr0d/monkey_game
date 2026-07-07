@@ -115,6 +115,8 @@ class Menu:
             
 #finds rect where the mouse was clicked(supposed to do nothing if click landed on spacing returns False in that case)
     def process_click(self, pos):
+        if not self.works:
+            return
         if len(pos) != 2:
             raise ValueError("In menu class, process_click needs a tuple of two elements (x, y)")
         x, y = pos

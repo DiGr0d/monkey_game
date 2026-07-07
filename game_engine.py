@@ -36,12 +36,13 @@ class Game_engine:
         print("Размер:", self.screen.get_size())
         self.runs = False
         self.current_processes = []
+        self.processes_to_add = []
 
     def get_processes(self):
         return self.current_processes
   
     def add_process(self, process):
-        self.current_processes.append(process)
+        self.processes_to_add.append(process)
 
     def run(self):
         clock = pygame.time.Clock()
@@ -74,8 +75,8 @@ class Game_engine:
                     if event.type == pygame.VIDEORESIZE:
                         self.resize_every_process()
 
-                for process in self.current_processes:
-                    print(type(process).__name__)
+                #for process in self.current_processes:
+                    #print(type(process).__name__)
                 # Обновляем GameWidget-ы перед отрисовкой
                 for process in self.current_processes:
                     if isinstance(process, game_widget.GameWidget):   # проверяем, что это наш виджет
@@ -85,6 +86,9 @@ class Game_engine:
                 self.screen.fill(self.WHITE)
                 for process in self.current_processes:
                     process.show()
+                
+                self.current_processes.extend(self.processes_to_add)
+                self.processes_to_add.clear()
 
                 pygame.display.flip()
 
