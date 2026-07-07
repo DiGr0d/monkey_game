@@ -1,7 +1,7 @@
 import pygame
 import menu
 import game
-print("type(menu.Menu) =", type(menu.Menu))
+#print("type(menu.Menu) =", type(menu.Menu))
 
 class Game_engine:
 

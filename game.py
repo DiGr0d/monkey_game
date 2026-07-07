@@ -1,5 +1,8 @@
 import pygame
 import menu
+import json
+import os
+import time
 from enum import Enum
 
 # Кеш для загруженных изображений
@@ -290,6 +293,44 @@ class GameGrid:
                 y = gr_y + i * t_h
                 self.field[i][j].fill(x, y, t_w, t_h, scr)
 
+    def to_dict(self):
+        return {
+            "t_width": self.t_width,
+            "t_height": self.t_height,
+            "tiles": [
+                [{"type": tile.tile_type().name, "facing": tile.facing} for tile in row]
+                for row in self.field
+            ]
+        }   
+
+    def load_from_dict(self, data):
+        self.t_width = data["t_width"]
+        self.t_height = data["t_height"]
+        new_field = []
+        for i, row in enumerate(data["tiles"]):
+            new_row = []
+            for j, tile_data in enumerate(row):
+                tile = TileFabric.getNewTile(tile_data["type"].lower(), self, j, i)
+                tile.facing = tile_data.get("facing", 0)
+                new_row.append(tile)
+            new_field.append(new_row)
+        self.field = new_field
+        self.last_tile_size = (0, 0)
+        self.resize_object(self.x, self.y, self.w, self.h)  
+
+    def save_to_file(self, path):
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(self.to_dict(), f, ensure_ascii=False, indent=2)    
+
+    @classmethod
+    def load_from_file(cls, path, game_engine, x=0, y=0, w=100, h=100):
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        grid = cls(data["t_width"], data["t_height"], game_engine=game_engine, x=x, y=y, w=w, h=h)
+        grid.load_from_dict(data)
+        return grid
+
+
 class TileMenu(menu.Menu):
     def __init__(self, Tile, Grid, game_engine, **kwargs):
         super().__init__(game_engine, **kwargs)  
@@ -405,11 +446,15 @@ class MapMaker:
 
         exitmenu = menu.Menu(game_engine, x=self.x, y=self.y, width=self.w, height=exitmenu_height)
         exitmenu.add_button({"name": "exit", "callback": self.exit})
+        exitmenu.add_button({"name": "save", "callback": self.save_map})
         self.objects["exitmenu"] = exitmenu
         exitmenu.switch_on()
 
-        grid = GameGrid(t_width=10, t_height=10, game_engine=game_engine,
-                        x=grid_x, y=grid_y, w=grid_w, h=grid_h)
+        load_path = kwargs.get("load_path")
+        if load_path:
+            grid = GameGrid.load_from_file(load_path, game_engine, x=grid_x, y=grid_y, w=grid_w, h=grid_h)
+        else:
+            grid = GameGrid(t_width=10, t_height=10, game_engine=game_engine, x=grid_x, y=grid_y, w=grid_w, h=grid_h)
         self.objects["grid"] = grid
 
         self.objects["tilemenu"] = None
@@ -423,12 +468,6 @@ class MapMaker:
         self.rel_h = self.h / height if height else 0
 
         self.update_geometry(width, height)
-
-    def game_engine(self):
-        return self.game_engine
-
-    def starting_process(self):
-        return self.starting_process
 
     def exitmenu(self):
         return self.objects.get("exitmenu")
@@ -529,11 +568,20 @@ class MapMaker:
                 val.show()
 
     def exit(self):
-        if self.starting_process() is not None:
-            self.starting_process().switch_on()
-            processes = self.game_engine().get_processes()
+        if self.starting_process is not None:
+            self.starting_process.switch_on()
+            processes = self.game_engine.get_processes()
             if self in processes:
                 processes.remove(self)
+
+    MAP_SAVE_DIR = "map_saves"
+
+    def save_map(self):
+        os.makedirs(self.MAP_SAVE_DIR, exist_ok=True)
+        filename = f"map_{int(time.time())}.json"
+        path = os.path.join(self.MAP_SAVE_DIR, filename)
+        self.grid().save_to_file(path)
+        print(f"Карта сохранена: {path}")
 
     def update_geometry(self, screen_width, screen_height):
         self.w = int(self.rel_w * screen_width)

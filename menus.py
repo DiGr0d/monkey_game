@@ -1,6 +1,7 @@
 import pygame
 import os
 import re
+import game
 from menu import Menu
 
 
@@ -197,10 +198,20 @@ class MapMakerMenu(SubMenu):
         self.resize_object(x=self.x, y=self.y, width=self.w, height=self.h)
 
     def open_existing_map(self, path):
-        print(f"Открываем карту: {path}")
+        self._launch_map_maker(load_path=path)
 
     def create_new_map(self):
-        print("Создаём новую карту")
+        self._launch_map_maker(load_path=None)
+
+    def _launch_map_maker(self, load_path):
+        engine = self.get_engine()
+        main_menu = self.back_menu
+        width, height = engine.screen.get_size()
+        mapmaker = game.MapMaker(engine, main_menu, x=0, y=0, width=width, height=height, load_path=load_path)
+        if main_menu is not None:
+            main_menu._close_child()
+        engine.add_process(mapmaker)
+        mapmaker.switch_on()
 
 
 # пока пустое, только кнопка назад от SubMenu
