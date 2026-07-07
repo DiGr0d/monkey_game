@@ -2,6 +2,9 @@ import pygame
 import menu
 from enum import Enum
 
+def d_game():
+    pass
+
 # Кеш для загруженных изображений
 _tile_images = {}
 
@@ -85,13 +88,17 @@ class GameTile(Tile):
         self.scaled_image = pygame.transform.scale(original, (int(tile_w), int(tile_h)))
 
     def fill(self, px, py, pw, ph, screen):
+        if pw <= 0 or ph <= 0:
+            return
+        
+        if (self.scaled_image is None or 
+            self.scaled_image.get_width() != pw or 
+            self.scaled_image.get_height() != ph):
+            self.update_scale(pw, ph)
+
         if self.scaled_image is None:
-            if pw > 0 and ph > 0:
-                self.update_scale(pw, ph)
-            else:
-                return  
-        if self.scaled_image is None:
-            return  
+            return
+
         screen.blit(self.scaled_image, (px, py))
 
     def add_mob(self):
