@@ -6,7 +6,6 @@ class GameScreen:
 
     STATUS_BAR_HEIGHT_RATIO = 0.08
     RIGHT_PANEL_WIDTH_RATIO = 0.25
-    #ICON_SIZE = 50
 
     def __init__(self, game_engine, starting_process=None, map_path=None, **kwargs):
         self.game_engine = game_engine
@@ -28,10 +27,12 @@ class GameScreen:
         right_panel_w = int(self.w * self.RIGHT_PANEL_WIDTH_RATIO)
 
         self.field_rect = pygame.Rect(self.x, self.y + status_bar_h, self.w - right_panel_w, self.h - status_bar_h)
-        self.status_bar_rect = pygame.Rect(self.x, self.y, self.w - right_panel_w, status_bar_h)
+        self.status_bar_rect = pygame.Rect(self.x, self.y, self.w - status_bar_h, status_bar_h)
         self.exit_rect = pygame.Rect(self.x + self.w - status_bar_h, self.y, status_bar_h, status_bar_h)
-        self.settings_rect = pygame.Rect(self.x + self.w - status_bar_h, self.y + self.h - status_bar_h, status_bar_h, status_bar_h)
+        self.settings_rect = pygame.Rect(self.x + self.w - right_panel_w / 3, self.y + self.h - status_bar_h, right_panel_w / 3 + 1, status_bar_h)
         self.right_panel_rect = pygame.Rect(self.x + self.w - right_panel_w, self.y + status_bar_h, right_panel_w, self.h - status_bar_h - status_bar_h)
+        self.save_rect = pygame.Rect(self.x + self.w - (right_panel_w / 3) * 2, self.y + self.h - status_bar_h, right_panel_w / 3 + 1, status_bar_h)
+        self.pause_rect = pygame.Rect(self.x + self.w - right_panel_w, self.y + self.h - status_bar_h, right_panel_w / 3, status_bar_h)
 
     def switch_on(self):
         self.works = True
@@ -68,6 +69,9 @@ class GameScreen:
         draw(self.exit_rect, (240, 150, 150), "X", icon_font)
         draw(self.settings_rect, (200, 200, 240), "*", icon_font)
         draw(self.right_panel_rect, (250, 240, 180) if self._context_panel_label else (230, 230, 230), self._context_panel_label)
+        draw(self.save_rect, (200, 200, 240), "S", icon_font)
+        draw(self.pause_rect, (200, 200, 240), "P", icon_font)
+
 
     def process_event(self, event):
         if not self.works:
