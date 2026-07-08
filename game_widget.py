@@ -3,14 +3,18 @@ import game2
 import game
 
 class GameWidget:
-    def __init__(self, game_engine, **kwargs):
+    def __init__(self, game_engine, parent, **kwargs):
         """
         :param game_engine: объект, содержащий screen и, возможно, цвета
         :param game: экземпляр класса Game с методами update(dt) и show()
         :param kwargs: x, y, width, height (в пикселях) для начального размещения
         """
+        self.parent = parent
         self.screen = game_engine.screen
-        self.game = game2.Game(self, 0, 0, 1, 1, mapGrid=game2.MapGrid(game.GameGrid(t_width=10, t_height=10, game_engine=self, x=0,y=0,w=game_engine.SCREEN_WIDTH,h=game_engine.SCREEN_HEIGHT)))
+        if "MapGrid" not in kwargs:
+            self.game = game2.Game(self, 0, 0, 1, 1, mapGrid=game2.MapGrid(game.GameGrid(t_width=10, t_height=10, game_engine=self, x=0,y=0,w=game_engine.SCREEN_WIDTH,h=game_engine.SCREEN_HEIGHT)))
+        else:
+            self.game = game2.Game(self, 0, 0, 1, 1, mapGrid=kwargs["MapGrid"])
         self.works = False          # включён ли виджет (отображается и обновляется)
         self.game_engine = game_engine
 

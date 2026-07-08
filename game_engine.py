@@ -5,6 +5,7 @@ import game
 import game_widget
 import object
 import menus
+import image_loader
 print("type(menu.Menu) =", type(menu.Menu))
 
 
@@ -31,6 +32,8 @@ class Game_engine:
             print("SOMETHING GOES WRONG MORE THAN 1 GAME ENGINE GENERATED")
         self.screen = pygame.display.set_mode((self.SCREEN_WIDTH, self.SCREEN_HEIGHT), pygame.RESIZABLE)
         game.load_tile_images() 
+        loader = object.image_loader.ImageLoader()
+        object.image_loader.mobAnimation.load_images(loader)
         print("Дисплей инициализирован:", pygame.display.get_init())
         print("Поверхность экрана:", self.screen)
         print("Размер:", self.screen.get_size())
@@ -52,9 +55,11 @@ class Game_engine:
         #menu1 = MainMenu(self, x=0, y=0, width=self.screen.get_width(), height=self.screen.get_height())
         try:
             main_menu = menus.MainMenu(self, x=0, y=0, width=self.screen.get_width(), height=self.screen.get_height())
-            #gw = game_widget.GameWidget(self, x=0, y=0, width=self.screen.get_width(), height=self.screen.get_height())
-            #gw.add_mob(object.Mob(gw.game.grid, (1, 1)))
-            #gw.add_tower(object.Tower(gw.game.grid, (10, 10)))
+            gw = game_widget.GameWidget(self, x=0, y=0, width=self.screen.get_width(), height=self.screen.get_height(), parent=None)
+            gw.add_mob(object.Mob(gw.game.grid, (1, 1)))
+            gw.add_tower(object.Tower(gw.game.grid, (10, 10)))
+            gw.add_tower(object.Tower(gw.game.grid, (15, 15)))
+            gw.add_tower(object.Tower(gw.game.grid, (12, 33)))
         except Exception as e:
             import traceback
             traceback.print_exc()
@@ -120,3 +125,5 @@ def main():
         print(e)
 
 main()       
+
+

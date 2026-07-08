@@ -55,13 +55,13 @@ class GameScreen:
             return
         scr = self.game_engine.screen
         font = pygame.font.Font(None, 28)
-        icon_font = pygame.font.Font(None, 46)
+        icon_font = pygame.font.Font(None, 80)
 
         def draw(rect, color, label, label_font=font):
             pygame.draw.rect(scr, color, rect)
             pygame.draw.rect(scr, self.game_engine.BLACK, rect, 1)
             if label:
-                surf = font.render(label, True, self.game_engine.BLACK)
+                surf = label_font.render(label, True, self.game_engine.BLACK)
                 scr.blit(surf, surf.get_rect(center=rect.center))
 
         draw(self.field_rect, self.game_engine.BLUE, "Game field")
