@@ -88,7 +88,6 @@ class Game_engine:
                         process.update(dt)
 
                 # Отрисовка
-                self.screen.fill(self.WHITE)
                 for process in self.current_processes:
                     process.show()
                 
@@ -105,7 +104,7 @@ class Game_engine:
     def update_event(self, event):
         #mouse_pos = event.pos
         #gen = (process.process_click(mouse_pos) for process in self.current_processes)
-        for process in list(self.current_processes):
+        for process in self.current_processes:
             process.process_event(event)
 
     def resize_every_process(self):
