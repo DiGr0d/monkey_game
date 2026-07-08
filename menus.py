@@ -2,7 +2,6 @@ import pygame
 import os
 import re
 import game
-import sys
 from menu import Menu
 
 
@@ -184,8 +183,6 @@ class MapMakerMenu(SubMenu):
     MAP_SAVE_DIR = "map_saves"
 
     def __init__(self, game_engine, **kwargs):
-        self.mapmaker_launched = False
-        self.mapmaker = None
         super().__init__(game_engine, **kwargs)
         for filename in list_json_filenames(self.MAP_SAVE_DIR):
             display_name = os.path.splitext(filename)[0]
@@ -207,28 +204,43 @@ class MapMakerMenu(SubMenu):
         self._launch_map_maker(load_path=None)
 
     def _launch_map_maker(self, load_path):
-        self.mapmaker_launched = True
         engine = self.get_engine()
         main_menu = self.back_menu
         width, height = engine.screen.get_size()
-        self.mapmaker = game.MapMaker(engine, main_menu, x=0, y=0, width=width, height=height, load_path=load_path)
+        mapmaker = game.MapMaker(engine, main_menu, x=0, y=0, width=width, height=height, load_path=load_path)
         if main_menu is not None:
             main_menu._close_child()
-        engine.add_process(self.mapmaker)
-        self.mapmaker.switch_on()
-        self.switch_off()
+        engine.add_process(mapmaker)
+        mapmaker.switch_on()
+
+
+class NewGameMapMenu(SubMenu):
     
-    def switch_off(self):
-        works = False
-        if self.mapmaker_launched:
-            print("switching_off")
-            self.mapmaker.switch_off()
-            import traceback
-            traceback.print_exc()
-            sys.exit()
-            #self.get_engine().current_processes.remove(self.mapmaker)
-            self.mapmaker_launched = False
-        
+    MAP_SAVE_DIR = "map_saves"
+
+    def __init__(self, game_engine, **kwargs):
+        super().__init__(game_engine, **kwargs)
+        for filename in list_json_filenames(self.MAP_SAVE_DIR):
+            display_name = os.path.splitext(filename)[0]
+            path = os.path.join(self.MAP_SAVE_DIR, filename)
+            self.buttons.insert(len(self.buttons) - 1, {
+                "name": display_name,
+                "callback": lambda p=path:self.start_game(p)
+            })
+        self.resize_object(x=self.x, y=self.y, width = self.w, height = self.h)
+
+    def start_game(self, map_path):
+        from game_screen import GameScreen
+        engine = self.get_engine()
+        main_menu = self.back_menu
+        width, height = engine.screen.get_size()
+        screen = GameScreen(engine, starting_process=main_menu, map_path=map_path, x=0, y=0, width=width, height=height)
+        if main_menu is not None:
+            main_menu._close_child()
+        engine.add_process(screen)
+        screen.switch_on()
+
+
 
 
 # пока пустое, только кнопка назад от SubMenu
@@ -273,9 +285,8 @@ class MainMenu(Menu):
         self._close_child()
         self.switch_on()
 
-    # заглушка, логику добавлю когда будет игровое поле
     def open_new_game(self):
-        print("Новая игра: логика ещё не реализована")
+        self._open_child(NewGameMapMenu)
 
     def open_load_game(self):
         self._open_child(LoadGameMenu)

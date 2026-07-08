@@ -146,7 +146,7 @@
         "facing": 0
       },
       {
-        "type": "GRASS",
+        "type": "ROCK",
         "facing": 0
       },
       {
@@ -310,7 +310,7 @@
         "facing": 0
       },
       {
-        "type": "GRASS",
+        "type": "ROCK",
         "facing": 0
       },
       {

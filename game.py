@@ -456,8 +456,9 @@ class MapMaker:
         grid_h = self.h - exitmenu_height
 
         exitmenu = menu.Menu(game_engine, x=self.x, y=self.y, width=self.w, height=exitmenu_height)
-        exitmenu.add_button({"name": "exit", "callback": self.exit})
-        exitmenu.add_button({"name": "save", "callback": self.save_map})
+        exitmenu.buttons.append({"name": "exit", "callback": self.exit})
+        exitmenu.buttons.append({"name": "save", "callback": self.save_map})
+        exitmenu.resize_object(x=self.x, y=self.y, width=self.w, height=exitmenu_height)
         self.objects["exitmenu"] = exitmenu
         exitmenu.switch_on()
 
