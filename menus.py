@@ -68,8 +68,6 @@ class ScrollableMenu(Menu):
 
     # как в Menu, но номер кнопки считается с учетом scroll_offset
     def process_click(self, pos):
-        if not self.works:
-            return
         if len(pos) != 2:
             raise ValueError("process_click needs a tuple of two elements (x, y)")
         x, y = pos
@@ -206,10 +204,6 @@ class MapMakerMenu(SubMenu):
         self._launch_map_maker(load_path=None)
 
     def _launch_map_maker(self, load_path):
-<<<<<<< HEAD
-=======
-        print("launch map maker")
->>>>>>> c092d7d (fixed mapmenu bug)
         engine = self.get_engine()
         main_menu = self.back_menu
         width, height = engine.screen.get_size()
@@ -218,7 +212,6 @@ class MapMakerMenu(SubMenu):
             main_menu._close_child()
         engine.add_process(mapmaker)
         mapmaker.switch_on()
-<<<<<<< HEAD
 
 
 class NewGameMapMenu(SubMenu):
@@ -248,8 +241,6 @@ class NewGameMapMenu(SubMenu):
         screen.switch_on()
 
 
-=======
->>>>>>> c092d7d (fixed mapmenu bug)
 
 
 # пока пустое, только кнопка назад от SubMenu
@@ -278,14 +269,11 @@ class MainMenu(Menu):
         child = menu_cls(engine, back_menu=self, x=self.x, y=self.y, width=self.w, height=self.h)
         self._child_menu = child
         engine.add_process(child)
-        # for process in engine.current_processes:
-        #     print(type(process).__name__)
         child.switch_on()
         self.switch_off()
 
     def _close_child(self):
         if self._child_menu is not None:
-            print("close child")
             engine = self.get_engine()
             self._child_menu.switch_off()
             processes = engine.get_processes()
@@ -304,12 +292,7 @@ class MainMenu(Menu):
         self._open_child(LoadGameMenu)
 
     def open_map_maker(self):
-        print("pressed")
-        try:
-            self._open_child(MapMakerMenu)
-        except:
-            import traceback
-            traceback.print_exc()
+        self._open_child(MapMakerMenu)
 
     def open_settings(self):
         self._open_child(SettingsMenu)
