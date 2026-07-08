@@ -130,6 +130,7 @@ class Mob(GameObject):
 
     def attack(self, target):
         target.take_damage(self.damage)
+        print("кусь")
 
     def move(self, dt):
         """Плавное движение по маршруту (вызывается каждый кадр)."""
@@ -174,6 +175,7 @@ class Mob(GameObject):
                 self._prev_target = self.target
         # движение выполняется каждый кадр
         self.do_work(dt)
+
     def draw(self, canvas, scrx, scry, tile_width, tile_height):
         px, py = self.pos
         wid, hei = self.show_wid, self.show_hei
@@ -193,18 +195,42 @@ class Mob(GameObject):
 # Класс башни (наследуется от GameObject)
 # ------------------------------------------------------------
 class Tower(GameObject):
-    def __init__(self, grid, pos, range_radius=3.0):
+    def __init__(self, grid, pos, range_radius=3.0, damage=10, attack_speed=1.0):
         super().__init__(grid, pos)
         self.range = range_radius   # радиус атаки в клетках
-        self.health = 20
+        self.health = 100
+        self.damage = damage
+        self.attack_speed = attack_speed
+        self._cooldown = 0.0
+        self.target = None  
+
+    def distance_to(self, pos):
+        sx, sy = self.pos
+        otherx, othery = pos
+        dx, dy =  otherx - sx, othery - sy
+        return (dx**2 + dy**2)**0.5
+    
+    def find_target(self, enemies):
+        # выбирает ближайшего врага в радиусе атаки
+        in_range = [e for e in enemies if self.distance_to(e.pos) <= self.range]
+        if not in_range:
+            self.target = None
+            return
+        self.target = min(in_range, key=lambda e: self.distance_to(e.pos))
+
+    def update(self, dt, enemies):
+        self._cooldown -= dt
+
+        if (self.target is None or self.target not in enemies or self.distance_to(self.target.pos) > self.range):
+            self.find_target(enemies)
+
+        if self.target is not None and self._cooldown <= 0:
+            self.shoot(self.target)
+            self._cooldown = 1.0 / self.attack_speed
 
     def shoot(self, target):
-        """
-        Заглушка для атаки по цели.
-        target – объект (например, моб), по которому стреляем.
-        """
-        # Здесь будет логика выстрела
-        pass
+        target.take_damage(self.damage)
+        print("выстрел")
 
     def draw(self, canvas, scrx, scry, tile_width, tile_height):
         px, py = self.pos

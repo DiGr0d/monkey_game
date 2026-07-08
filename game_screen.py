@@ -92,6 +92,12 @@ class GameScreen:
             return
         if self.right_panel_rect.collidepoint(pos):
             return
+        if self.save_rect.collidepoint(pos):
+            print("Сохранение: пока не реализовано")
+            return
+        if self.pause_rect.collidepoint(pos):
+            print("Пауза: пока не реализовано")
+            return
         self._context_panel_label = None
 
     def _exit(self):
