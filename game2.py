@@ -49,6 +49,7 @@ class Game:
         for tower in self.towers:
             if hasattr(tower, 'update'):
                 tower.update(dt, self.mobs)   # можно передавать мобов для стрельбы
+        self.towers = [tower for tower in self.towers if tower.health > 0]
 
     def ShowMapGrid(self, canvas, parx, pary, tw, th):
         gr_x, gr_y = parx, pary
