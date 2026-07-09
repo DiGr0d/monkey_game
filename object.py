@@ -87,7 +87,7 @@ class Mob(GameObject):
         self.slow_timer = 0.0
         
         
-    @lru_cache(maxsize=20)
+    @lru_cache(maxsize=100)
     def path_cost(self, sx, sy, gx, gy):
         cost = a_star(self.grid, (sx, sy), (gx, gy), return_cost=True)
         return cost
