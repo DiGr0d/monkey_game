@@ -68,17 +68,21 @@ class GameObject:
 class Mob(GameObject):
     def __init__(self, grid, pos, speed=2.0, health=100):
         super().__init__(grid, pos, health)
-        self.speed = speed
+        self.base_speed = speed
         self.path = []             # текущий маршрут (без стартовой клетки)
         self._accumulator = 0.0        # накопленное время для обновления пути
-        self._attack_latency = 1.0
+        self.base_attack_latency = 1.0
         self._attack_accumulator = 0.0
         self.damage = 10
         self._prev_target = None       # предыдущая цель для сравнения
         self.mobAnimation = image_loader.mobAnimation()
         self.changed_anim_state = False
-        self.show_wid = 3.0
-        self.show_hei = 3.0
+
+        self.speed = speed
+        self._attack_latency = self.base_attack_latency
+        self.burn_timer = 0.0
+        self.slow_timer = 0.0
+        
         
     @lru_cache(maxsize=20)
     def path_cost(self, sx, sy, gx, gy):
@@ -199,6 +203,19 @@ class Mob(GameObject):
         if self.prev_health != self.prev_health:
             self.mobAnimation.set_state(image_loader.MobState.DAMAGED, dt)
             self.changed_anim_state = True
+
+        if self.burn_timer > 0:
+            self.burn_timer -= dt
+            self.take_damage(5 * dt)
+
+        if self.slow_timer > 0:
+            self.slow_timer -= dt
+            self.speed = self.base_speed / 1.75
+            self._attack_latency = self.base_attack_latency * 1.75
+        else:
+            self.speed = self.base_speed
+            self._attack_latency = self.base_attack_latency
+
         self._accumulator += dt
         if self._accumulator >= 1.0:
             self._accumulator = 0.0
@@ -216,15 +233,27 @@ class Mob(GameObject):
         wid, hei = self.show_wid, self.show_hei
         sw = wid * tile_width
         sh = hei * tile_height
-        
-        offset_x = (tile_width - sw) / 2
-        offset_y = (tile_height - sh) / 2 # возможно лучше чтобы 
-        #отрисовывался начиная с центар, но тогда может быть атака будет выглядеть криво
-        
+
         x = scrx + tile_width * px #+ offset_x
         y = scry + tile_height * py #+ offset_y
+
+        #offset_x = (tile_width - sw) / 2
+        #offset_y = (tile_height - sh) / 2  возможно лучше чтобы 
+        #отрисовывался начиная с центар, но тогда может быть атака будет выглядеть криво
         
-        canvas.blit(self.mobAnimation.get_animation(sw, sh), (x, y))
+        sprite_surf = self.mobAnimation.get_animation(sw, sh)
+        
+        if (hasattr(self, 'burn_timer') and self.burn_timer > 0) or (hasattr(self, 'slow_timer') and self.slow_timer > 0):
+            sprite_surf = sprite_surf.copy()
+
+            is_red_flash = (self.burn_timer > 0) and (int(self.burn_timer * 4) % 2 == 0)
+
+            if is_red_flash:
+                sprite_surf.fill((255, 100, 100), special_flags=pygame.BLEND_RGB_MULT)
+            elif self.slow_timer > 0:
+                sprite_surf.fill((130, 200, 255), special_flags=pygame.BLEND_RGB_MULT)
+        
+        canvas.blit(sprite_surf, (x, y))
         
 class Projectile:
 
@@ -234,9 +263,11 @@ class Projectile:
         self.speed = speed
         self.damage = damage 
         self.alive = True
+        # Добавляем серую анимацию "normal" на 4 кадра
+        self.animation = image_loader.projectileAnimation(proj_type="normal", num_frames=4, frame_duration=0.08)
 
     def update(self, dt):
-        if self.target is None or self.target.health == 0:
+        if self.target is None or self.target.health <= 0:
             self.alive = False
             return
         
@@ -256,15 +287,103 @@ class Projectile:
             self.x += dx / dist * step
             self.y += dy / dist * step
 
+        if self.alive:
+            self.animation.update(dt)
+
     def on_hit(self, target):
             target.take_damage(self.damage)
 
     def draw(self, canvas, scrx, scry, tile_width, tile_height):
             x = scrx + tile_width * self.x
             y = scry + tile_height * self.y
-            radius = max(3, int(tile_width * 0.12))
-            pygame.draw.circle(canvas, (255, 220, 60), (int(x), int(y)), radius)
 
+            proj_size = int(tile_width * 2.0)
+
+            scaled_sprite = self.animation.get_animation(proj_size, proj_size)
+
+            if self.target:
+                tx, ty = self.target.pos
+                dx, dy = tx - self.x, ty - self.y
+                angle = math.degrees(math.atan2(-dy, dx))
+                final_sprite = pygame.transform.rotate(scaled_sprite, angle)
+            else:
+                final_sprite = scaled_sprite
+
+            rect = final_sprite.get_rect(center=(int(x), int(y)))
+            canvas.blit(final_sprite, rect.topleft)
+
+class FireProjectile(Projectile):
+
+    def __init__(self, pos, target, speed=8.0, damage=0):
+        super().__init__(pos, target, speed, damage)
+        # создаем анимацию: тип "fire", 4 кадра, скорость смены 0.08 сек
+        self.animation = image_loader.projectileAnimation(proj_type="fire", num_frames=4, frame_duration=0.08)
+
+    def update(self, dt):
+        super().update(dt)
+        if self.alive:
+            self.animation.update(dt) # обновляем кадры во времени
+
+    def on_hit(self, target):
+        super().on_hit(target)
+        target.burn_timer = 5.0
+
+    def draw(self, canvas, scrx, scry, tile_width, tile_height):
+        x = scrx + tile_width * self.x
+        y = scry + tile_height * self.y
+
+        # определяем размер снаряда на экране 
+        proj_size = int(tile_width * 2.0)
+
+        # получаем текущий отмасштабированный кадр из нашего нового класса
+        scaled_sprite = self.animation.get_animation(proj_size, proj_size)
+
+        # поворачиваем по направлению полета
+        if self.target:
+            tx, ty = self.target.pos
+            dx, dy = tx - self.x, ty - self.y
+            angle = math.degrees(math.atan2(-dy, dx)) 
+            final_sprite = pygame.transform.rotate(scaled_sprite, angle) 
+        else:
+            final_sprite = scaled_sprite
+            
+        # Центрируем повернутый спрайт, чтобы он летел ровно и гладко
+        rect = final_sprite.get_rect(center=(int(x), int(y))) 
+        canvas.blit(final_sprite, rect.topleft) 
+
+class IceProjectile(Projectile):
+
+    def __init__(self, pos, target, speed=8.0, damage=0):
+        super().__init__(pos, target, speed, damage) 
+        # Создаем анимацию: тип "ice", 4 кадка, скорость смены 0.12 сек
+        self.animation = image_loader.projectileAnimation(proj_type="ice", num_frames=4, frame_duration=0.12)
+
+    def update(self, dt):
+        super().update(dt) 
+        if self.alive:
+            self.animation.update(dt)
+
+    def on_hit(self, target):
+        super().on_hit(target)
+        target.slow_timer = 5.0
+
+    def draw(self, canvas, scrx, scry, tile_width, tile_height):
+        x = scrx + tile_width * self.x
+        y = scry + tile_height * self.y
+
+        proj_size = int(tile_width * 2.0) 
+        scaled_sprite = self.animation.get_animation(proj_size, proj_size)
+        
+        if self.target:
+            tx, ty = self.target.pos 
+            dx, dy = tx - self.x, ty - self.y 
+            angle = math.degrees(math.atan2(-dy, dx)) 
+            final_sprite = pygame.transform.rotate(scaled_sprite, angle) 
+        else:
+            final_sprite = scaled_sprite
+            
+        rect = final_sprite.get_rect(center=(int(x), int(y))) 
+        canvas.blit(final_sprite, rect.topleft) 
 # ------------------------------------------------------------
 # Класс башни (наследуется от GameObject)
 # ------------------------------------------------------------
@@ -272,10 +391,10 @@ class Tower(GameObject):
 
     projectile_cls = Projectile
 
-    def __init__(self, grid, pos, range_radius=3.0, damage=10, attack_speed=1.0, projectile_speed=16.0):
+    def __init__(self, grid, pos, range_radius=7.0, damage=10, attack_speed=1.0, projectile_speed=8.0):
         super().__init__(grid, pos)
         self.range = range_radius   # радиус атаки в клетках
-        self.health = 100
+        self.health = 50
         self.damage = damage
         self.attack_speed = attack_speed
         self.projectile_speed = projectile_speed
@@ -333,8 +452,25 @@ class Tower(GameObject):
 
         for p in self.projectiles:
             p.draw(canvas, scrx, scry, tile_width, tile_height)
+
+class FireTower(Tower):
+
+    projectile_cls = FireProjectile
+
+
+class IceTower(Tower):
+
+    projectile_cls = IceProjectile
     
 
 
+class WallTower(Tower):
+
+    def __init__(self, grid, pos):
+        super().__init__(grid, pos)
+        self.health = 100
+
+    def update(self, dt, enemies):
+        pass
 
         

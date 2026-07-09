@@ -34,6 +34,7 @@ class Game_engine:
         game.load_tile_images() 
         loader = object.image_loader.ImageLoader()
         object.image_loader.mobAnimation.load_images(loader)
+        object.image_loader.projectileAnimation.load_images(loader)
         print("Дисплей инициализирован:", pygame.display.get_init())
         print("Поверхность экрана:", self.screen)
         print("Размер:", self.screen.get_size())
@@ -64,7 +65,7 @@ class Game_engine:
             import traceback
             traceback.print_exc()
             self.runs = False
-        self.current_processes.append(gw)
+        self.current_processes.append(main_menu)
         for process in self.current_processes:
             process.switch_on()
 

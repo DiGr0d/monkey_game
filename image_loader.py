@@ -263,3 +263,82 @@ class MobState(Enum):
     ATTACKS = 3
     DAMAGED = 4
     DEATH = 5
+
+
+class projectileAnimation:
+    # Оригинальные изображения снарядов (НЕ ИЗМЕНЯЮТСЯ)
+    _ORIGINAL_IMAGES = None
+    # Кэш для масштабированных снарядов (глобальный)
+    _SCALED_CACHE = {}
+
+    @classmethod
+    def load_images(cls, loader):
+        """Загружает оригинальные изображения снарядов один раз при старте игры"""
+        if cls._ORIGINAL_IMAGES is None:
+            # Ищем файлы с префиксом "proj_" (например: proj_fire_0, proj_ice_1)
+            cls._ORIGINAL_IMAGES = loader.load_by_prefix(prefix="proj_")
+            print(f"Загружено {len(cls._ORIGINAL_IMAGES)} оригинальных изображений снарядов")
+            cls._SCALED_CACHE = {}
+        return cls._ORIGINAL_IMAGES
+
+    @classmethod
+    def clear_cache(cls):
+        """Очищает кэш при изменении разрешения экрана"""
+        cls._SCALED_CACHE = {}
+        print("Кэш снарядов очищен")
+
+    def __init__(self, proj_type, num_frames, frame_duration=0.08):
+        if projectileAnimation._ORIGINAL_IMAGES is None:
+            raise RuntimeError("Сначала вызовите projectileAnimation.load_images(loader) в главном файле!")
+        
+        self.proj_type = proj_type          # Строка: "fire" или "ice"
+        self.num_frames = num_frames        # Сколько кадров в анимации (например, 4)
+        self.frame_duration = frame_duration # Скорость смены кадров
+        self.anim_accumulator = 0.0
+        self.frame = 0
+
+    def update(self, dt):
+        """Обновляет таймер анимации и двигает кадры по кругу"""
+        self.anim_accumulator += dt
+        if self.anim_accumulator >= self.frame_duration:
+            self.anim_accumulator -= self.frame_duration
+            self.frame = (self.frame + 1) % self.num_frames
+
+    def get_cur_frame_name(self):
+        """Собирает системное имя кадра, например: 'proj_fire_0'"""
+        return f"proj_{self.proj_type}_{self.frame}"
+
+    def get_animation(self, tile_w, tile_h):
+        """Возвращает готовый отмасштабированный кадр из кэша"""
+        try:
+            anim_name = self.get_cur_frame_name()
+            
+            # Защита: если кадра нет в загруженных картинках, ищем самый первый кадр (с индексом 0)
+            if anim_name not in projectileAnimation._ORIGINAL_IMAGES:
+                fallback = f"proj_{self.proj_type}_0"
+                if fallback in projectileAnimation._ORIGINAL_IMAGES:
+                    anim_name = fallback
+                else:
+                    # Если картинок вообще нет в папке, создаем цветной кружок-заглушку, чтобы игра не падала
+                    dummy = pygame.Surface((int(tile_w), int(tile_h)), pygame.SRCALPHA)
+                    color = (255, 69, 0) if self.proj_type == "fire" else (0, 191, 255)
+                    pygame.draw.circle(dummy, color, (int(tile_w)//2, int(tile_h)//2), max(2, int(tile_w)//2))
+                    return dummy
+
+            # Проверяем кэш масштабирования
+            cache_key = (anim_name, int(tile_w), int(tile_h))
+            if cache_key in projectileAnimation._SCALED_CACHE:
+                return projectileAnimation._SCALED_CACHE[cache_key]
+            
+            # Масштабируем из оригинального спрайта
+            original = projectileAnimation._ORIGINAL_IMAGES[anim_name]
+            new_im = pygame.transform.scale(original, (int(tile_w), int(tile_h)))
+            
+            # Сохраняем в кэш
+            projectileAnimation._SCALED_CACHE[cache_key] = new_im
+            return new_im
+            
+        except Exception as e:
+            print(f"ОШИБКА в анимации снаряда: {e}")
+            dummy = pygame.Surface((max(1, int(tile_w)), max(1, int(tile_h))), pygame.SRCALPHA)
+            return dummy
