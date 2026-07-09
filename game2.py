@@ -1,4 +1,5 @@
 import object
+import random
 import game
 
 class MapGrid:
@@ -20,9 +21,16 @@ def GridFromMapGrid(MapGrid):
 
 
 class Game:
-    def __init__(self, parent, rel_x, rel_y, rel_w, rel_h, mapGrid=None):
+    WAVE_COOLDOWN = 10.0
+    SPAWNPOINT_RADIUS = 3
+    def __init__(self, parent, rel_x, rel_y, rel_w, rel_h, mapGrid=None, **kwargs):
         self.grid = GridFromMapGrid(mapGrid)
-        self.mapGrid = mapGrid   
+        self.mapGrid = mapGrid  
+        if "spawnpoint" in kwargs:
+            self.spawnpoint = kwargs["spawnpoint"]
+        else:
+            self.spawnpoint = self.find_spawnpoint() 
+        self.wave_number = 1
         self.parent = parent
         self.rel_x = rel_x
         self.rel_y = rel_y
@@ -30,7 +38,24 @@ class Game:
         self.rel_h = rel_h
         self.mobs = []
         self.towers = []
-        
+
+    def spawn_wave(self):
+        spx, spy = self.spawnpoint
+        x, y = max(0, spx), max(0, spy)
+        wid, hei = (Game.SPAWNPOINT_RADIUS * 2 for _ in range(2))
+        for _ in range(self.wave_number):
+            i = random.randint(y, y + hei - 1)
+            j = random.randint(x, x + wid - 1) 
+            self.spawn_mob(j, i)
+
+    def spawn_mob(x, y):
+        pass
+    
+    def find_spawnpint(self):
+        for i in range(self.grid.height):
+            for j in range(self.grid.width):
+                if self.grid.is_walkable(j, i):
+                    return (j, i)
 
     def get_pos(self):
         return (self.rel_x, self.rel_y)
