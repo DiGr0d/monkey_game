@@ -71,13 +71,13 @@ class GameScreen:
             return
         scr = self.game_engine.screen
         font = pygame.font.Font(None, 28)
-        icon_font = pygame.font.Font(None, 46)
+        icon_font = pygame.font.Font(None, 80)
 
         def draw(rect, color, label, label_font=font):
             pygame.draw.rect(scr, color, rect)
             pygame.draw.rect(scr, self.game_engine.BLACK, rect, 1)
             if label:
-                surf = font.render(label, True, self.game_engine.BLACK)
+                surf = label_font.render(label, True, self.game_engine.BLACK)
                 scr.blit(surf, surf.get_rect(center=rect.center))
 
         #draw(self.field_rect, self.game_engine.BLUE, "Game field")
@@ -171,6 +171,12 @@ class GameScreen:
                 callback = self.select_tower_menu.process_click(pos)
                 if callback:
                     callback()
+            return
+        if self.save_rect.collidepoint(pos):
+            print("Сохранение: пока не реализовано")
+            return
+        if self.pause_rect.collidepoint(pos):
+            print("Пауза: пока не реализовано")
             return
         self._context_panel_label = None
 

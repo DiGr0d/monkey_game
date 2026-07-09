@@ -64,7 +64,7 @@ class Game_engine:
             import traceback
             traceback.print_exc()
             self.runs = False
-        self.current_processes.append(main_menu)
+        self.current_processes.append(gw)
         for process in self.current_processes:
             process.switch_on()
 

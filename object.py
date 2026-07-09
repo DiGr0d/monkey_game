@@ -210,6 +210,7 @@ class Mob(GameObject):
                 self._prev_target = self.target
         # движение выполняется каждый кадр
         self.do_work(dt)
+
     def draw(self, canvas, scrx, scry, tile_width, tile_height):
         px, py = self.pos
         wid, hei = self.show_wid, self.show_hei
@@ -225,23 +226,94 @@ class Mob(GameObject):
         
         canvas.blit(self.mobAnimation.get_animation(sw, sh), (x, y))
         
+class Projectile:
+
+    def __init__(self, pos, target, speed=8.0, damage=0):
+        self.x, self.y = pos
+        self.target = target
+        self.speed = speed
+        self.damage = damage 
+        self.alive = True
+
+    def update(self, dt):
+        if self.target is None or self.target.health == 0:
+            self.alive = False
+            return
+        
+        tx, ty = self.target.pos
+        dx, dy =  tx - self.x, ty - self.y
+        dist = (dx**2 + dy**2)**0.5
+
+        if dist < 0.15:
+            self.on_hit(self.target)
+            self.alive = False
+            return
+        
+        step = self.speed * dt 
+        if step >= dist:
+            self.x, self.y = tx, ty
+        else:
+            self.x += dx / dist * step
+            self.y += dy / dist * step
+
+    def on_hit(self, target):
+            target.take_damage(self.damage)
+
+    def draw(self, canvas, scrx, scry, tile_width, tile_height):
+            x = scrx + tile_width * self.x
+            y = scry + tile_height * self.y
+            radius = max(3, int(tile_width * 0.12))
+            pygame.draw.circle(canvas, (255, 220, 60), (int(x), int(y)), radius)
 
 # ------------------------------------------------------------
 # Класс башни (наследуется от GameObject)
 # ------------------------------------------------------------
 class Tower(GameObject):
-    def __init__(self, grid, pos, range_radius=3.0):
+
+    projectile_cls = Projectile
+
+    def __init__(self, grid, pos, range_radius=3.0, damage=10, attack_speed=1.0, projectile_speed=16.0):
         super().__init__(grid, pos)
         self.range = range_radius   # радиус атаки в клетках
-        self.health = 20
+        self.health = 100
+        self.damage = damage
+        self.attack_speed = attack_speed
+        self.projectile_speed = projectile_speed
+        self._cooldown = 0.0
+        self.target = None  
+        self.projectiles = []
+
+    def distance_to(self, pos):
+        sx, sy = self.pos
+        otherx, othery = pos
+        dx, dy =  otherx - sx, othery - sy
+        return (dx**2 + dy**2)**0.5
+    
+    def find_target(self, enemies):
+        # выбирает ближайшего врага в радиусе атаки
+        in_range = [e for e in enemies if self.distance_to(e.pos) <= self.range]
+        if not in_range:
+            self.target = None
+            return
+        self.target = min(in_range, key=lambda e: self.distance_to(e.pos))
+
+    def update(self, dt, enemies):
+        self._cooldown -= dt
+
+        if (self.target is None or self.target not in enemies or self.distance_to(self.target.pos) > self.range):
+            self.find_target(enemies)
+
+        if self.target is not None and self._cooldown <= 0:
+            self.shoot(self.target)
+            self._cooldown = 1.0 / self.attack_speed
+
+        for p in self.projectiles:
+            p.update(dt)
+        self.projectiles = [p for p in self.projectiles if p.alive]
 
     def shoot(self, target):
-        """
-        Заглушка для атаки по цели.
-        target – объект (например, моб), по которому стреляем.
-        """
-        # Здесь будет логика выстрела
-        pass
+        projectile = self.projectile_cls(self.pos, target, speed=self.projectile_speed, damage=self.damage)
+        self.projectiles.append(projectile)
 
     def draw(self, canvas, scrx, scry, tile_width, tile_height):
         px, py = self.pos
@@ -258,5 +330,11 @@ class Tower(GameObject):
         #print(self.health)
         #pygame.draw.rect(canvas, (0,0,255), (x, y, wid, hei))
         pygame.draw.rect(canvas, (0,0,255), (x, y, sw, sh))
+
+        for p in self.projectiles:
+            p.draw(canvas, scrx, scry, tile_width, tile_height)
     
 
+
+
+        

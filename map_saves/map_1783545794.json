@@ -1,0 +1,426 @@
+{
+  "t_width": 10,
+  "t_height": 10,
+  "tiles": [
+    [
+      {
+        "type": "GRASS",
+        "facing": 0
+      },
+      {
+        "type": "GRASS",
+        "facing": 0
+      },
+      {
+        "type": "GRASS",
+        "facing": 0
+      },
+      {
+        "type": "GRASS",
+        "facing": 0
+      },
+      {
+        "type": "GRASS",
+        "facing": 0
+      },
+      {
+        "type": "GRASS",
+        "facing": 0
+      },
+      {
+        "type": "GRASS",
+        "facing": 0
+      },
+      {
+        "type": "GRASS",
+        "facing": 0
+      },
+      {
+        "type": "GRASS",
+        "facing": 0
+      },
+      {
+        "type": "GRASS",
+        "facing": 0
+      }
+    ],
+    [
+      {
+        "type": "GRASS",
+        "facing": 0
+      },
+      {
+        "type": "GRASS",
+        "facing": 0
+      },
+      {
+        "type": "GRASS",
+        "facing": 0
+      },
+      {
+        "type": "GRASS",
+        "facing": 0
+      },
+      {
+        "type": "ROCK",
+        "facing": 0
+      },
+      {
+        "type": "GRASS",
+        "facing": 0
+      },
+      {
+        "type": "GRASS",
+        "facing": 0
+      },
+      {
+        "type": "GRASS",
+        "facing": 0
+      },
+      {
+        "type": "GRASS",
+        "facing": 0
+      },
+      {
+        "type": "GRASS",
+        "facing": 0
+      }
+    ],
+    [
+      {
+        "type": "GRASS",
+        "facing": 0
+      },
+      {
+        "type": "GRASS",
+        "facing": 0
+      },
+      {
+        "type": "GRASS",
+        "facing": 0
+      },
+      {
+        "type": "GRASS",
+        "facing": 0
+      },
+      {
+        "type": "GRASS",
+        "facing": 0
+      },
+      {
+        "type": "GRASS",
+        "facing": 0
+      },
+      {
+        "type": "GRASS",
+        "facing": 0
+      },
+      {
+        "type": "GRASS",
+        "facing": 0
+      },
+      {
+        "type": "ROCK",
+        "facing": 0
+      },
+      {
+        "type": "GRASS",
+        "facing": 0
+      }
+    ],
+    [
+      {
+        "type": "GRASS",
+        "facing": 0
+      },
+      {
+        "type": "GRASS",
+        "facing": 0
+      },
+      {
+        "type": "GRASS",
+        "facing": 0
+      },
+      {
+        "type": "GRASS",
+        "facing": 0
+      },
+      {
+        "type": "GRASS",
+        "facing": 0
+      },
+      {
+        "type": "GRASS",
+        "facing": 0
+      },
+      {
+        "type": "GRASS",
+        "facing": 0
+      },
+      {
+        "type": "GRASS",
+        "facing": 0
+      },
+      {
+        "type": "GRASS",
+        "facing": 0
+      },
+      {
+        "type": "GRASS",
+        "facing": 0
+      }
+    ],
+    [
+      {
+        "type": "GRASS",
+        "facing": 0
+      },
+      {
+        "type": "GRASS",
+        "facing": 0
+      },
+      {
+        "type": "GRASS",
+        "facing": 0
+      },
+      {
+        "type": "GRASS",
+        "facing": 0
+      },
+      {
+        "type": "GRASS",
+        "facing": 0
+      },
+      {
+        "type": "GRASS",
+        "facing": 0
+      },
+      {
+        "type": "GRASS",
+        "facing": 0
+      },
+      {
+        "type": "GRASS",
+        "facing": 0
+      },
+      {
+        "type": "GRASS",
+        "facing": 0
+      },
+      {
+        "type": "GRASS",
+        "facing": 0
+      }
+    ],
+    [
+      {
+        "type": "GRASS",
+        "facing": 0
+      },
+      {
+        "type": "GRASS",
+        "facing": 0
+      },
+      {
+        "type": "ROCK",
+        "facing": 0
+      },
+      {
+        "type": "GRASS",
+        "facing": 0
+      },
+      {
+        "type": "GRASS",
+        "facing": 0
+      },
+      {
+        "type": "GRASS",
+        "facing": 0
+      },
+      {
+        "type": "GRASS",
+        "facing": 0
+      },
+      {
+        "type": "ROCK",
+        "facing": 0
+      },
+      {
+        "type": "GRASS",
+        "facing": 0
+      },
+      {
+        "type": "GRASS",
+        "facing": 0
+      }
+    ],
+    [
+      {
+        "type": "GRASS",
+        "facing": 0
+      },
+      {
+        "type": "GRASS",
+        "facing": 0
+      },
+      {
+        "type": "GRASS",
+        "facing": 0
+      },
+      {
+        "type": "GRASS",
+        "facing": 0
+      },
+      {
+        "type": "GRASS",
+        "facing": 0
+      },
+      {
+        "type": "GRASS",
+        "facing": 0
+      },
+      {
+        "type": "GRASS",
+        "facing": 0
+      },
+      {
+        "type": "GRASS",
+        "facing": 0
+      },
+      {
+        "type": "GRASS",
+        "facing": 0
+      },
+      {
+        "type": "GRASS",
+        "facing": 0
+      }
+    ],
+    [
+      {
+        "type": "GRASS",
+        "facing": 0
+      },
+      {
+        "type": "GRASS",
+        "facing": 0
+      },
+      {
+        "type": "GRASS",
+        "facing": 0
+      },
+      {
+        "type": "GRASS",
+        "facing": 0
+      },
+      {
+        "type": "GRASS",
+        "facing": 0
+      },
+      {
+        "type": "GRASS",
+        "facing": 0
+      },
+      {
+        "type": "GRASS",
+        "facing": 0
+      },
+      {
+        "type": "GRASS",
+        "facing": 0
+      },
+      {
+        "type": "GRASS",
+        "facing": 0
+      },
+      {
+        "type": "GRASS",
+        "facing": 0
+      }
+    ],
+    [
+      {
+        "type": "GRASS",
+        "facing": 0
+      },
+      {
+        "type": "GRASS",
+        "facing": 0
+      },
+      {
+        "type": "GRASS",
+        "facing": 0
+      },
+      {
+        "type": "GRASS",
+        "facing": 0
+      },
+      {
+        "type": "GRASS",
+        "facing": 0
+      },
+      {
+        "type": "GRASS",
+        "facing": 0
+      },
+      {
+        "type": "GRASS",
+        "facing": 0
+      },
+      {
+        "type": "GRASS",
+        "facing": 0
+      },
+      {
+        "type": "GRASS",
+        "facing": 0
+      },
+      {
+        "type": "GRASS",
+        "facing": 0
+      }
+    ],
+    [
+      {
+        "type": "GRASS",
+        "facing": 0
+      },
+      {
+        "type": "GRASS",
+        "facing": 0
+      },
+      {
+        "type": "GRASS",
+        "facing": 0
+      },
+      {
+        "type": "GRASS",
+        "facing": 0
+      },
+      {
+        "type": "ROCK",
+        "facing": 0
+      },
+      {
+        "type": "GRASS",
+        "facing": 0
+      },
+      {
+        "type": "GRASS",
+        "facing": 0
+      },
+      {
+        "type": "GRASS",
+        "facing": 0
+      },
+      {
+        "type": "GRASS",
+        "facing": 0
+      },
+      {
+        "type": "GRASS",
+        "facing": 0
+      }
+    ]
+  ]
+}
