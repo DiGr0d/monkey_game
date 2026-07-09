@@ -4,15 +4,18 @@ import math
 def heuristic(a, b):
     return math.hypot(a[0] - b[0], a[1] - b[1])
 
-def a_star(grid, start, goal):
+def a_star(grid, start, goal, return_cost=False):
     """
     Ищет путь по сетке grid от start до goal с использованием A*.
     grid должен иметь метод get_neighbors(x, y, allow_diagonal=True)
     и is_walkable(x, y).
-    Возвращает список клеток от start до goal (включая start, исключая start по желанию).
-    Если путь не найден, возвращает пустой список.
+    Если return_cost=False (по умолчанию): возвращает список клеток от start до goal (включая start).
+    Если return_cost=True: возвращает кортеж (path, cost), где cost - общая стоимость пути.
+    Если путь не найден: при return_cost=False возвращает [], при return_cost=True возвращает ([], float('inf')).
     """
     if not grid.is_walkable(*goal) or start == goal:
+        if return_cost:
+            return float('inf')
         return []
 
     open_set = []
@@ -22,7 +25,7 @@ def a_star(grid, start, goal):
     f_score = {start: heuristic(start, goal)}
 
     while open_set:
-        current_f, current = heapq.heappop(open_set)
+        _, current = heapq.heappop(open_set)
 
         if current == goal:
             break
@@ -41,7 +44,12 @@ def a_star(grid, start, goal):
                 heapq.heappush(open_set, (f, neighbor))
 
     if goal not in came_from:
-        return []   # нет пути
+        if return_cost:
+            return float('inf')
+        return []
+
+    if return_cost:
+        return g_score[goal]
 
     # Восстанавливаем путь
     path = []
@@ -50,4 +58,5 @@ def a_star(grid, start, goal):
         path.append(current)
         current = came_from[current]
     path.reverse()
-    return path   # включает стартовую клетку
+
+    return path

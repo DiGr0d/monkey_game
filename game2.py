@@ -15,14 +15,14 @@ def GridFromMapGrid(MapGrid):
         for x in range(w*4):
             mx, my = x//4, y//4
             walkable = MapGrid.field[my][mx].is_walkable()
-            new_grid.cells[y][x] = object.Cell(x, y, walkable)
+            new_grid.cells[x][y] = object.Cell(x, y, walkable)
     return new_grid
 
 
 class Game:
     def __init__(self, parent, rel_x, rel_y, rel_w, rel_h, mapGrid=None):
         self.grid = GridFromMapGrid(mapGrid)
-        self.mapGrid = mapGrid   # заглушка для карты
+        self.mapGrid = mapGrid   
         self.parent = parent
         self.rel_x = rel_x
         self.rel_y = rel_y
@@ -30,7 +30,13 @@ class Game:
         self.rel_h = rel_h
         self.mobs = []
         self.towers = []
+        
 
+    def get_pos(self):
+        return (self.rel_x, self.rel_y)
+    def get_size(self):
+        return (self.rel_w, self.rel_h)
+    
     def add_mob(self, mob):
         self.mobs.append(mob)
 
@@ -66,8 +72,9 @@ class Game:
         
         parx, pary = self.parent.get_pos()
         parw, parh = self.parent.get_size()
-        #print(parw, parh)
-        #print(parx, pary)
+        sx, sy = self.get_pos()
+        parx, pary = parx + parw * sx, pary + parh * sy
+
         canvas = self.parent.game_engine.screen
         grw, grh = self.mapGrid.get_size()
         map_tile_width = self.rel_w * parw / grw

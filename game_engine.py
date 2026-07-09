@@ -1,11 +1,11 @@
 import pygame
 import menu
 import game
-#print("type(menu.Menu) =", type(menu.Menu))
 import game_widget
 import object
 import menus
 import image_loader
+import game_screen
 print("type(menu.Menu) =", type(menu.Menu))
 
 
@@ -55,11 +55,11 @@ class Game_engine:
         #menu1 = MainMenu(self, x=0, y=0, width=self.screen.get_width(), height=self.screen.get_height())
         try:
             main_menu = menus.MainMenu(self, x=0, y=0, width=self.screen.get_width(), height=self.screen.get_height())
-            gw = game_widget.GameWidget(self, x=0, y=0, width=self.screen.get_width(), height=self.screen.get_height(), parent=None)
-            gw.add_mob(object.Mob(gw.game.grid, (1, 1)))
-            gw.add_tower(object.Tower(gw.game.grid, (10, 10)))
-            gw.add_tower(object.Tower(gw.game.grid, (15, 15)))
-            gw.add_tower(object.Tower(gw.game.grid, (12, 33)))
+            # gw = game_widget.GameWidget(self, x=0, y=0, width=self.screen.get_width(), height=self.screen.get_height(), parent=None)
+            # gw.add_mob(object.Mob(gw.game.grid, (1, 1)))
+            # gw.add_tower(object.Tower(gw.game.grid, (10, 10)))
+            # gw.add_tower(object.Tower(gw.game.grid, (15, 15)))
+            # gw.add_tower(object.Tower(gw.game.grid, (12, 33)))
         except Exception as e:
             import traceback
             traceback.print_exc()
@@ -83,12 +83,14 @@ class Game_engine:
                 #for process in self.current_processes:
                     #print(type(process).__name__)
                 # Обновляем GameWidget-ы перед отрисовкой
-                for process in self.current_processes:
-                    if isinstance(process, game_widget.GameWidget):   # проверяем, что это наш виджет
-                        process.update(dt)
+                # for process in self.current_processes:
+                #     if isinstance(process, game_widget.GameWidget):   # проверяем, что это наш виджет
+                #         process.update(dt)
 
                 # Отрисовка
                 for process in self.current_processes:
+                    if isinstance(process, game_screen.GameScreen):   # проверяем, что это наш виджет
+                        process.update_game(dt)
                     process.show()
                 
                 self.current_processes.extend(self.processes_to_add)
@@ -101,7 +103,7 @@ class Game_engine:
             traceback.print_exc()
             self.runs = False
 
-    def update_event(self, event):
+    def update_event(self, event, **kwargs):
         #mouse_pos = event.pos
         #gen = (process.process_click(mouse_pos) for process in self.current_processes)
         for process in self.current_processes:
