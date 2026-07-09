@@ -2,14 +2,17 @@ from path_find import a_star
 import pygame
 import math
 import image_loader
-from enum import Enum
+from functools import lru_cache
 
 class Cell:
     def __init__(self, x, y, walkable=True, weight=1):
         self.x = x
         self.y = y
         self.walkable = walkable
-        self.weight = weight
+        if not walkable:
+            self.weight = 100000
+        else:
+            self.weight = weight
         
 class Grid:
     def __init__(self, width, height):
@@ -66,7 +69,7 @@ class Mob(GameObject):
     def __init__(self, grid, pos, speed=2.0, health=100):
         super().__init__(grid, pos, health)
         self.speed = speed
-        self.path = []                 # текущий маршрут (без стартовой клетки)
+        self.path = []             # текущий маршрут (без стартовой клетки)
         self._accumulator = 0.0        # накопленное время для обновления пути
         self._attack_latency = 1.0
         self._attack_accumulator = 0.0
@@ -74,20 +77,34 @@ class Mob(GameObject):
         self._prev_target = None       # предыдущая цель для сравнения
         self.mobAnimation = image_loader.mobAnimation()
         self.changed_anim_state = False
+        self.show_wid = 3.0
+        self.show_hei = 3.0
         
+    @lru_cache(maxsize=20)
+    def path_cost(self, sx, sy, gx, gy):
+        cost = a_star(self.grid, (sx, sy), (gx, gy), return_cost=True)
+        return cost
 
     def find_target(self, enemies):
-        """Выбирает ближайшего врага (исключая себя) и сохраняет его клетку как цель."""
+        """Выбирает врага, путь до которого (по A*) имеет наименьшую стоимость."""
         if not enemies:
             self.target = None
             return
-        # Исключаем самого себя из списка
-        #others = [e for e in enemies if e is not self]
-        # if not others:
-        #     self.target = None
-        #     return
-        nearest = min(enemies, key=lambda e: (e.pos[0]-self.pos[0])**2 + (e.pos[1]-self.pos[1])**2)
-        self.target = nearest#(round(nearest.pos[0]), round(nearest.pos[1]))
+
+        start = (round(self.pos[0]), round(self.pos[1]))
+        best_enemy = None
+        best_cost = float('inf')
+
+        for enemy in enemies:
+            if enemy is self:
+                continue
+            goal = (round(enemy.pos[0]), round(enemy.pos[1]))
+            cost = self.path_cost(*start, *goal)
+            if cost < best_cost:
+                best_cost = cost
+                best_enemy = enemy
+
+        self.target = best_enemy
 
     def pathfind(self):
         """Пересчитывает путь от текущей позиции до self.target с помощью A*."""
@@ -108,10 +125,29 @@ class Mob(GameObject):
         dx, dy =  otherx - sx, othery - sy
         return (dx**2 + dy**2)**0.5
 
+    def collides_with_target(self):
+        if not self.target:
+            return False
+        otx, oty = self.target.pos
+        otw, oth = self.target.show_wid, self.target.show_hei
+        otx1, oty1 = otw + otx, oty + oth
+        sx, sy = self.pos
+        sw, sh = self.show_wid, self.show_hei
+        sx1, sy1 = sx + sw, sy + sh
+        if sx1 < otx:
+            return False
+        if sx > otx1:
+            return False
+        if sy1 < oty:
+            return False
+        if sy > oty1:
+            return False
+        return True   
+
     def do_work(self, dt):
         if not self.target:
             return
-        if (not self.path) or self.distance_to(self.target.pos) < min(self.target.show_wid, self.target.show_hei):
+        if (not self.path) or self.distance_to(self.target.pos) < min(self.target.show_wid, self.target.show_hei) or self.collides_with_target():
            if (not self.changed_anim_state):
                self.mobAnimation.set_state(image_loader.MobState.ATTACKS, dt)
                tx, ty = self.target.pos
@@ -181,10 +217,11 @@ class Mob(GameObject):
         sh = hei * tile_height
         
         offset_x = (tile_width - sw) / 2
-        offset_y = (tile_height - sh) / 2
+        offset_y = (tile_height - sh) / 2 # возможно лучше чтобы 
+        #отрисовывался начиная с центар, но тогда может быть атака будет выглядеть криво
         
-        x = scrx + tile_width * px + offset_x
-        y = scry + tile_height * py + offset_y
+        x = scrx + tile_width * px #+ offset_x
+        y = scry + tile_height * py #+ offset_y
         
         canvas.blit(self.mobAnimation.get_animation(sw, sh), (x, y))
         
@@ -211,8 +248,13 @@ class Tower(GameObject):
         wid, hei = self.show_wid, self.show_hei
         sw = self.show_wid * tile_width
         sh = self.show_hei * tile_height
-        x = scrx + tile_width * px - wid/2
-        y = scry + tile_height * py - hei/2
+        x = scrx + tile_width * px# - wid/2
+        y = scry + tile_height * py #- hei/2
+        # offset_x = (tile_width - sw) / 2
+        # offset_y = (tile_height - sh) / 2
+        
+        # x = scrx + tile_width * px + offset_x
+        # y = scry + tile_height * py 
         #print(self.health)
         #pygame.draw.rect(canvas, (0,0,255), (x, y, wid, hei))
         pygame.draw.rect(canvas, (0,0,255), (x, y, sw, sh))
