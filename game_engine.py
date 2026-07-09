@@ -35,6 +35,7 @@ class Game_engine:
         loader = object.image_loader.ImageLoader()
         object.image_loader.mobAnimation.load_images(loader)
         object.image_loader.projectileAnimation.load_images(loader)
+        object.image_loader.towerImage.load_images(loader)
         print("Дисплей инициализирован:", pygame.display.get_init())
         print("Поверхность экрана:", self.screen)
         print("Размер:", self.screen.get_size())

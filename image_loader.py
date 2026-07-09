@@ -342,3 +342,54 @@ class projectileAnimation:
             print(f"ОШИБКА в анимации снаряда: {e}")
             dummy = pygame.Surface((max(1, int(tile_w)), max(1, int(tile_h))), pygame.SRCALPHA)
             return dummy
+        
+class towerImage:
+    # Оригинальные изображения башен (НЕ ИЗМЕНЯЮТСЯ)
+    _ORIGINAL_IMAGES = None
+    # Кэш для масштабированных башен
+    _SCALED_CACHE = {}
+
+    @classmethod
+    def load_images(cls, loader):
+        """Загружает оригинальные изображения башен один раз при старте игры"""
+        if cls._ORIGINAL_IMAGES is None:
+            # Ищет файлы с префиксом "tower_" (например: tower_normal, tower_fire, tower_ice)
+            cls._ORIGINAL_IMAGES = loader.load_by_prefix(prefix="tower_")
+            print(f"Загружено {len(cls._ORIGINAL_IMAGES)} оригинальных изображений башен")
+            cls._SCALED_CACHE = {}
+        return cls._ORIGINAL_IMAGES
+
+    @classmethod
+    def clear_cache(cls):
+        """Очищает кэш при изменении разрешения экрана"""
+        cls._SCALED_CACHE = {}
+
+    @staticmethod
+    def get_tower_sprite(tower_type, tile_w, tile_h):
+        """Возвращает готовый отмасштабированный спрайт башни из кэша"""
+        try:
+            img_name = f"tower_{tower_type}"
+            
+            # Если картинки нет в папке, создаем цветной прямоугольник-заглушку
+            if img_name not in towerImage._ORIGINAL_IMAGES:
+                dummy = pygame.Surface((int(tile_w), int(tile_h)), pygame.SRCALPHA)
+                color = (139, 69, 19) if tower_type == "normal" else ((255, 0, 0) if tower_type == "fire" else (0, 0, 255))
+                pygame.draw.rect(dummy, color, (0, 0, int(tile_w), int(tile_h)))
+                return dummy
+
+            # Проверяем кэш масштабирования
+            cache_key = (img_name, int(tile_w), int(tile_h))
+            if cache_key in towerImage._SCALED_CACHE:
+                return towerImage._SCALED_CACHE[cache_key]
+            
+            # Масштабируем из оригинального спрайта под размер клетки
+            original = towerImage._ORIGINAL_IMAGES[img_name]
+            new_im = pygame.transform.scale(original, (int(tile_w), int(tile_h)))
+            
+            # Сохраняем в кэш
+            towerImage._SCALED_CACHE[cache_key] = new_im
+            return new_im
+            
+        except Exception as e:
+            print(f"ОШИБКА в получении спрайта башни: {e}")
+            return pygame.Surface((max(1, int(tile_w)), max(1, int(tile_h))), pygame.SRCALPHA)

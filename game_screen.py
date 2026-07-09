@@ -23,9 +23,12 @@ class GameScreen:
         grid = game2.MapGrid(game.GameGrid.load_from_file(map_path, game_engine, x=0, y=0, w=1, h=1))
         self.game = game2.Game(self, 0, self.STATUS_BAR_HEIGHT_RATIO, self.GAME_PANEL_WIDTH_RATIO, self.GAME_PANEL_HEIGHT_RATIO, mapGrid=grid)
         self.game.add_mob(object.Mob(self.game.grid, (1, 1)))
-        self.game.add_tower(object.Tower(self.game.grid, (10, 10)))
-        self.game.add_tower(object.Tower(self.game.grid, (15, 15)))
-        self.game.add_tower(object.Tower(self.game.grid, (12, 33)))
+        #self.game.add_tower(object.Tower(self.game.grid, (10, 10)))
+        #self.game.add_tower(object.Tower(self.game.grid, (15, 15)))
+        #self.game.add_tower(object.Tower(self.game.grid, (12, 33)))
+        self.game.add_tower(object.FireTower(self.game.grid, (13, 13)))
+        self.game.add_tower(object.IceTower(self.game.grid, (20, 20)))
+        self.game.add_tower(object.WallTower(self.game.grid, (15, 33)))
         self.works = True
 
         width, height = game_engine.screen.get_size()

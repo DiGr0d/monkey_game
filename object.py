@@ -50,8 +50,8 @@ class GameObject:
         self.health = health    # текущее здоровье
         self.prev_health = health
         self.target = None      # целевая клетка (int, int) или None
-        self.show_wid = 1.0 # ширина показываемой части
-        self.show_hei  = 1.0# высота показваемой части
+        self.show_wid = 2.0 # ширина показываемой части
+        self.show_hei  = 2.0# высота показваемой части
     
     def set_size(self, sz):
         self.show_wid, self.show_hei = sz
@@ -77,6 +77,9 @@ class Mob(GameObject):
         self._prev_target = None       # предыдущая цель для сравнения
         self.mobAnimation = image_loader.mobAnimation()
         self.changed_anim_state = False
+
+        self.show_wid = 2.0 
+        self.show_hei  = 2.0
 
         self.speed = speed
         self._attack_latency = self.base_attack_latency
@@ -210,7 +213,7 @@ class Mob(GameObject):
 
         if self.slow_timer > 0:
             self.slow_timer -= dt
-            self.speed = self.base_speed / 1.75
+            self.speed = self.base_speed / 3
             self._attack_latency = self.base_attack_latency * 1.75
         else:
             self.speed = self.base_speed
@@ -391,8 +394,9 @@ class Tower(GameObject):
 
     projectile_cls = Projectile
 
-    def __init__(self, grid, pos, range_radius=7.0, damage=10, attack_speed=1.0, projectile_speed=8.0):
+    def __init__(self, grid, pos, range_radius=9.0, damage=10, attack_speed=1.0, projectile_speed=8.0):
         super().__init__(grid, pos)
+        self.tower_type = "normal"
         self.range = range_radius   # радиус атаки в клетках
         self.health = 50
         self.damage = damage
@@ -448,7 +452,9 @@ class Tower(GameObject):
         # y = scry + tile_height * py 
         #print(self.health)
         #pygame.draw.rect(canvas, (0,0,255), (x, y, wid, hei))
-        pygame.draw.rect(canvas, (0,0,255), (x, y, sw, sh))
+        sprite = image_loader.towerImage.get_tower_sprite(self.tower_type, sw, sh)
+        
+        canvas.blit(sprite, (int(x), int(y)))
 
         for p in self.projectiles:
             p.draw(canvas, scrx, scry, tile_width, tile_height)
@@ -456,13 +462,18 @@ class Tower(GameObject):
 class FireTower(Tower):
 
     projectile_cls = FireProjectile
-
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)  
+        self.tower_type = "fire"
 
 class IceTower(Tower):
 
     projectile_cls = IceProjectile
     
-
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)  # Запускаем базовый конструктор Tower
+        self.tower_type = "ice"
 
 class WallTower(Tower):
 
