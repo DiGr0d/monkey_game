@@ -12,7 +12,7 @@ class GameScreen:
     STATUS_BAR_HEIGHT_RATIO = 0.08
     RIGHT_PANEL_WIDTH_RATIO = 0.25
     GAME_PANEL_WIDTH_RATIO = 1 - RIGHT_PANEL_WIDTH_RATIO
-    GAME_PANEL_HEIGHT_RATIO = 1 - STATUS_BAR_HEIGHT_RATIO
+    GAME_PANEL_HEIGHT_RATIO = 1 - STATUS_BAR_HEIGHT_RATIO * 2
     GAME_PANEL_X = 0
     GAME_PANEL_Y = STATUS_BAR_HEIGHT_RATIO
 
@@ -28,7 +28,7 @@ class GameScreen:
         #self.game.add_tower(object.Tower(self.game.grid, (12, 33)))
         self.game.add_tower(object.FireTower(self.game.grid, (13, 13)))
         self.game.add_tower(object.IceTower(self.game.grid, (20, 20)))
-        self.game.add_tower(object.WallTower(self.game.grid, (15, 33)))
+        self.game.add_tower(object.WallTower(self.game.grid, (10, 13)))
         self.works = True
 
         width, height = game_engine.screen.get_size()
@@ -45,13 +45,14 @@ class GameScreen:
         status_bar_h = int(self.h * self.STATUS_BAR_HEIGHT_RATIO)
         right_panel_w = int(self.w * self.RIGHT_PANEL_WIDTH_RATIO)
 
-        self.field_rect = pygame.Rect(self.x, self.y + status_bar_h, self.w - right_panel_w, self.h - status_bar_h)
+        self.field_rect = pygame.Rect(self.x, self.y + status_bar_h, self.w - right_panel_w, self.h - status_bar_h * 2)
         self.status_bar_rect = pygame.Rect(self.x, self.y, self.w - status_bar_h, status_bar_h)
         self.exit_rect = pygame.Rect(self.x + self.w - status_bar_h, self.y, status_bar_h, status_bar_h)
         self.settings_rect = pygame.Rect(self.x + self.w - right_panel_w / 3, self.y + self.h - status_bar_h, right_panel_w / 3 + 1, status_bar_h)
         self.right_panel_rect = pygame.Rect(self.x + self.w - right_panel_w, self.y + status_bar_h, right_panel_w, self.h - status_bar_h - status_bar_h)
         self.save_rect = pygame.Rect(self.x + self.w - (right_panel_w / 3) * 2, self.y + self.h - status_bar_h, right_panel_w / 3 + 1, status_bar_h)
         self.pause_rect = pygame.Rect(self.x + self.w - right_panel_w, self.y + self.h - status_bar_h, right_panel_w / 3, status_bar_h)
+        self.name_rect = pygame.Rect(self.x, self.y + self.h - status_bar_h, self.w - right_panel_w, status_bar_h)
 
     def switch_on(self):
         self.works = True
@@ -91,6 +92,7 @@ class GameScreen:
         draw(self.right_panel_rect, (250, 240, 180) if self._context_panel_label else (230, 230, 230), self._context_panel_label)
         draw(self.save_rect, (200, 200, 240), "S", icon_font)
         draw(self.pause_rect, (200, 200, 240), "P", icon_font)
+        draw(self.name_rect, self.game_engine.BLUE, "Tower Defence")
         if self.select_tower_menu:
             self.select_tower_menu.show()
 
@@ -137,7 +139,7 @@ class GameScreen:
                 if mob_rect.collidepoint(pos):
                     self.select_tower_menu = None
                     object_clicked = True
-                    self._context_panel_label = f"mob hp: {mob.health}"
+                    self._context_panel_label = f"mob hp: {int(mob.health)}"
             if not object_clicked:
                 for tower in towers:
                     tower_rect = get_object_rect(tower)
@@ -185,11 +187,14 @@ class GameScreen:
 
     def _exit(self):
         engine = self.game_engine
+        self.switch_off()
         processes = engine.get_processes()
         if self in processes:
             processes.remove(self)
         if self.starting_process is not None:
+            width, height = engine.screen.get_size()
             self.starting_process.switch_on()
+            self.starting_process.update_geometry(width, height)
 
 
 class select_tower_menu(menu.Menu):
@@ -200,13 +205,25 @@ class select_tower_menu(menu.Menu):
         self.rel_w = relw
         self.rel_h = relh
         self.game = parent.game
-        self.buttons = [{"name": "tower1", "callback": lambda: self.add_tower()}]
+        self.buttons = [{"name": "Tower", "callback": lambda: self.add_tower()},
+                        {"name": "FireTower", "callback": lambda: self.add_firetower()},
+                        {"name": "IceTower", "callback": lambda: self.add_icetower()},
+                        {"name": "WallTower", "callback": lambda: self.add_walltower()}]
         self.cur_tile = cur_tile
         self.update_geometry(*parent.game_engine.screen.get_size())
         
 
     def add_tower(self):
         self.game.add_tower(object.Tower(self.game.grid, self.cur_tile))
+
+    def add_firetower(self):
+        self.game.add_tower(object.FireTower(self.game.grid, self.cur_tile))
+
+    def add_icetower(self):
+        self.game.add_tower(object.IceTower(self.game.grid, self.cur_tile))
+
+    def add_walltower(self):
+        self.game.add_tower(object.WallTower(self.game.grid, self.cur_tile))
 
     def show(self):
         self.update_geometry(*self.game_engine.screen.get_size())

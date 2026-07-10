@@ -51,7 +51,7 @@ class Game:
     def spawn_mob(x, y):
         pass
     
-    def find_spawnpint(self):
+    def find_spawnpoint(self):
         for i in range(self.grid.height):
             for j in range(self.grid.width):
                 if self.grid.is_walkable(j, i):
