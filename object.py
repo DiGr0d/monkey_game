@@ -66,7 +66,7 @@ class GameObject:
         pass
 
 class Mob(GameObject):
-    def __init__(self, grid, pos, speed=2.0, health=100):
+    def __init__(self, grid, pos, speed=3.0, health=10):
         super().__init__(grid, pos, health)
         self.speed = speed
         self.path = []             # текущий маршрут (без стартовой клетки)
@@ -77,8 +77,6 @@ class Mob(GameObject):
         self._prev_target = None       # предыдущая цель для сравнения
         self.mobAnimation = image_loader.mobAnimation()
         self.changed_anim_state = False
-        self.show_wid = 3.0
-        self.show_hei = 3.0
         
     @lru_cache(maxsize=100)
     def path_cost(self, sx, sy, gx, gy):
@@ -291,6 +289,8 @@ class Tower(GameObject):
     
     def find_target(self, enemies):
         # выбирает ближайшего врага в радиусе атаки
+        #for e in enemies:
+            #print(type(e).__name__)
         in_range = [e for e in enemies if self.distance_to(e.pos) <= self.range]
         if not in_range:
             self.target = None

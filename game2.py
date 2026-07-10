@@ -21,8 +21,8 @@ def GridFromMapGrid(MapGrid):
 
 
 class Game:
-    WAVE_COOLDOWN = 10.0
-    SPAWNPOINT_RADIUS = 3
+    WAVE_COOLDOWN = 20.0
+    SPAWNPOINT_RADIUS = 5
     def __init__(self, parent, rel_x, rel_y, rel_w, rel_h, mapGrid=None, **kwargs):
         self.grid = GridFromMapGrid(mapGrid)
         self.mapGrid = mapGrid  
@@ -31,6 +31,7 @@ class Game:
         else:
             self.spawnpoint = self.find_spawnpoint() 
         self.wave_number = 1
+        self.wave_cooldown_accumulator = self.WAVE_COOLDOWN
         self.parent = parent
         self.rel_x = rel_x
         self.rel_y = rel_y
@@ -40,6 +41,7 @@ class Game:
         self.towers = []
 
     def spawn_wave(self):
+        self.wave_number += 1
         spx, spy = self.spawnpoint
         x, y = max(0, spx), max(0, spy)
         wid, hei = (Game.SPAWNPOINT_RADIUS * 2 for _ in range(2))
@@ -48,10 +50,11 @@ class Game:
             j = random.randint(x, x + wid - 1) 
             self.spawn_mob(j, i)
 
-    def spawn_mob(x, y):
-        pass
-    
-    def find_spawnpint(self):
+    def spawn_mob(self, x, y):
+        self.add_mob(object.Mob(self.grid, (x, y)))
+        
+
+    def find_spawnpoint(self):
         for i in range(self.grid.height):
             for j in range(self.grid.width):
                 if self.grid.is_walkable(j, i):
@@ -69,6 +72,10 @@ class Game:
         self.towers.append(tower)
 
     def update(self, dt):
+        self.wave_cooldown_accumulator-=dt
+        if self.wave_cooldown_accumulator <= 0:
+            self.wave_cooldown_accumulator = Game.WAVE_COOLDOWN
+            self.spawn_wave()
         # 1) Обновляем всех мобов (передаём им список всех мобов как потенциальных врагов)
         for mob in self.mobs:
             mob.update(dt, self.towers)
