@@ -89,4 +89,5 @@
    ```bash
    pip install pygame
 3. Склонируйте репозиторий и запустите главный файл движка из корня проекта:
+   ```bash
    python game_engine.py
