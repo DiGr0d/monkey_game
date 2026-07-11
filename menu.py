@@ -115,12 +115,13 @@ class Menu:
             
 #finds rect where the mouse was clicked(supposed to do nothing if click landed on spacing returns False in that case)
     def process_click(self, pos):
+        if not self.works:
+            return
         if len(pos) != 2:
             raise ValueError("In menu class, process_click needs a tuple of two elements (x, y)")
         x, y = pos
         if not all(isinstance(a, int) for a in pos):
             raise ValueError("Every tuple element must be an integar in process_click function of menu class")
-        print("vast govno")
         x_pos = self.with_indent + self.x
         y_pos = self.height_indent + self.y
         x_right_pos = self.x + self.w - self.with_indent

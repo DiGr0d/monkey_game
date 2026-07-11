@@ -1,7 +1,14 @@
 import pygame
 import menu
 import game
+import game_widget
+import object
+import menus
+import image_loader
+import game_screen
 print("type(menu.Menu) =", type(menu.Menu))
+
+
 
 class Game_engine:
 
@@ -25,37 +32,48 @@ class Game_engine:
             print("SOMETHING GOES WRONG MORE THAN 1 GAME ENGINE GENERATED")
         self.screen = pygame.display.set_mode((self.SCREEN_WIDTH, self.SCREEN_HEIGHT), pygame.RESIZABLE)
         game.load_tile_images() 
+        loader = object.image_loader.ImageLoader()
+        object.image_loader.mobAnimation.load_images(loader)
+        object.image_loader.projectileAnimation.load_images(loader)
+        object.image_loader.towerImage.load_images(loader)
         print("Дисплей инициализирован:", pygame.display.get_init())
         print("Поверхность экрана:", self.screen)
         print("Размер:", self.screen.get_size())
         self.runs = False
         self.current_processes = []
+        self.processes_to_add = []
 
     def get_processes(self):
         return self.current_processes
   
     def add_process(self, process):
-        self.current_processes.append(process)
+        self.processes_to_add.append(process)
 
     def run(self):
         clock = pygame.time.Clock()
         self.runs = True
-        #grid = game.GameGrid(t_width=10, t_height=10, game_engine=self, x=0,y=0,w=Game_engine.SCREEN_WIDTH,h=Game_engine.SCREEN_HEIGHT)
+
+        from menus import MainMenu
+        #menu1 = MainMenu(self, x=0, y=0, width=self.screen.get_width(), height=self.screen.get_height())
         try:
-            menu1 = game.MapMaker(self, None)
+            main_menu = menus.MainMenu(self, x=0, y=0, width=self.screen.get_width(), height=self.screen.get_height())
+            # gw = game_widget.GameWidget(self, x=0, y=0, width=self.screen.get_width(), height=self.screen.get_height(), parent=None)
+            # gw.add_mob(object.Mob(gw.game.grid, (1, 1)))
+            # gw.add_tower(object.Tower(gw.game.grid, (10, 10)))
+            # gw.add_tower(object.Tower(gw.game.grid, (15, 15)))
+            # gw.add_tower(object.Tower(gw.game.grid, (12, 33)))
         except Exception as e:
             import traceback
             traceback.print_exc()
             self.runs = False
-        #menu1 = menu.Menu(self, x=0,y=0,width=self.screen.get_width()/2)
-        #menu2 = menu.Menu(self, x=self.screen.get_width()/2)
-        #self.current_processes.append(menu1)
-        #self.current_processes.append(menu2)
-        self.current_processes.append(menu1)
+        self.current_processes.append(main_menu)
         for process in self.current_processes:
             process.switch_on()
+
         try:
             while self.runs:
+                dt = clock.tick(60) / 1000.0   # время в секунда
+
                 for event in pygame.event.get():
                     if event.type == pygame.QUIT:
                         self.runs = False
@@ -63,18 +81,31 @@ class Game_engine:
                     self.update_event(event)
                     if event.type == pygame.VIDEORESIZE:
                         self.resize_every_process()
-                    
+
+                #for process in self.current_processes:
+                    #print(type(process).__name__)
+                # Обновляем GameWidget-ы перед отрисовкой
+                # for process in self.current_processes:
+                #     if isinstance(process, game_widget.GameWidget):   # проверяем, что это наш виджет
+                #         process.update(dt)
+
+                # Отрисовка
                 for process in self.current_processes:
+                    if isinstance(process, game_screen.GameScreen):   # проверяем, что это наш виджет
+                        process.update_game(dt)
                     process.show()
                 
+                self.current_processes.extend(self.processes_to_add)
+                self.processes_to_add.clear()
+
                 pygame.display.flip()
-                clock.tick(60)
+
         except Exception as e:
             import traceback
             traceback.print_exc()
             self.runs = False
 
-    def update_event(self, event):
+    def update_event(self, event, **kwargs):
         #mouse_pos = event.pos
         #gen = (process.process_click(mouse_pos) for process in self.current_processes)
         for process in self.current_processes:
@@ -98,3 +129,5 @@ def main():
         print(e)
 
 main()       
+
+

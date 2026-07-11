@@ -1,0 +1,494 @@
+from path_find import a_star
+import pygame
+import math
+import image_loader
+from functools import lru_cache
+
+class Cell:
+    def __init__(self, x, y, walkable=True, weight=1):
+        self.x = x
+        self.y = y
+        self.walkable = walkable
+        if not walkable:
+            self.weight = 100000
+        else:
+            self.weight = weight
+        
+class Grid:
+    def __init__(self, width, height):
+        self.width = width
+        self.height = height
+        self.cells = [[Cell(x, y) for y in range(height)] for x in range(width)]
+
+    def is_walkable(self, x, y):
+        if 0 <= x < self.width and 0 <= y < self.height:
+            return self.cells[x][y].walkable
+        return False
+
+    def get_neighbors(self, x, y, allow_diagonal=True):
+        """Возвращает список соседних координат (до 8 направлений)."""
+        neighbors = []
+        directions = [(-1,0),(1,0),(0,-1),(0,1)]  # 4 направления
+        if allow_diagonal:
+            directions += [(-1,-1),(-1,1),(1,-1),(1,1)]  # диагонали
+        for dx, dy in directions:
+            nx, ny = x + dx, y + dy
+            if self.is_walkable(nx, ny):
+                # Проверка на "срезание углов" – нельзя проходить по диагонали между двумя стенами.
+                # Если это диагональ, проверяем, что обе соседние клетки (по горизонтали и вертикали) проходимы.
+                if dx != 0 and dy != 0:
+                    if not (self.is_walkable(x + dx, y) and self.is_walkable(x, y + dy)):
+                        continue
+                neighbors.append((nx, ny))
+        return neighbors
+
+
+class GameObject:
+    def __init__(self, grid, pos, health=100):
+        self.grid = grid
+        self.pos = pos          # (float, float) – координаты в клетках
+        self.health = health    # текущее здоровье
+        self.prev_health = health
+        self.target = None      # целевая клетка (int, int) или None
+        self.show_wid = 2.0 # ширина показываемой части
+        self.show_hei  = 2.0# высота показваемой части
+    
+    def set_size(self, sz):
+        self.show_wid, self.show_hei = sz
+
+    def take_damage(self, damage):
+        self.prev_health = self.health
+        """Уменьшает здоровье на указанное значение."""
+        self.health -= damage
+
+    def draw(self, canvas, x, y, tile_width, tile_height):
+        """Базовый метод отрисовки (переопределяется в наследниках)."""
+        pass
+
+class Mob(GameObject):
+    def __init__(self, grid, pos, speed=3.0, health=50):
+        super().__init__(grid, pos, health)
+        self.base_speed = speed
+        self.path = []             # текущий маршрут (без стартовой клетки)
+        self._accumulator = 0.0        # накопленное время для обновления пути
+        self.base_attack_latency = 1.0
+        self._attack_accumulator = 0.0
+        self.damage = 10
+        self._prev_target = None       # предыдущая цель для сравнения
+        self.mobAnimation = image_loader.mobAnimation()
+        self.changed_anim_state = False
+
+        self.show_wid = 2.0 
+        self.show_hei  = 2.0
+
+        self.speed = speed
+        self._attack_latency = self.base_attack_latency
+        self.burn_timer = 0.0
+        self.slow_timer = 0.0
+    
+        
+    @lru_cache(maxsize=100)
+    def path_cost(self, sx, sy, gx, gy):
+        cost = a_star(self.grid, (sx, sy), (gx, gy), return_cost=True)
+        return cost
+
+    def find_target(self, enemies):
+        """Выбирает врага, путь до которого (по A*) имеет наименьшую стоимость."""
+        if not enemies:
+            self.target = None
+            return
+
+        start = (round(self.pos[0]), round(self.pos[1]))
+        best_enemy = None
+        best_cost = float('inf')
+
+        for enemy in enemies:
+            if enemy is self:
+                continue
+            goal = (round(enemy.pos[0]), round(enemy.pos[1]))
+            cost = self.path_cost(*start, *goal)
+            if cost < best_cost:
+                best_cost = cost
+                best_enemy = enemy
+
+        self.target = best_enemy
+
+    def pathfind(self):
+        """Пересчитывает путь от текущей позиции до self.target с помощью A*."""
+        if self.target is None:
+            self.path = []
+            return
+        start = (round(self.pos[0]), round(self.pos[1]))
+        goal = (round(self.target.pos[0]), round(self.target.pos[1]))
+        full_path = a_star(self.grid, start, goal)   # функция из pathfinding.py
+        if not full_path:
+            self.path = []
+        else:
+            self.path = full_path[1:]   # убираем стартовую клетку
+
+    def distance_to(self, pos):
+        sx, sy = self.pos
+        otherx, othery = pos
+        dx, dy =  otherx - sx, othery - sy
+        return (dx**2 + dy**2)**0.5
+
+    def collides_with_target(self):
+        if not self.target:
+            return False
+        otx, oty = self.target.pos
+        otw, oth = self.target.show_wid, self.target.show_hei
+        otx1, oty1 = otw + otx, oty + oth
+        sx, sy = self.pos
+        sw, sh = self.show_wid, self.show_hei
+        sx1, sy1 = sx + sw, sy + sh
+        if sx1 < otx:
+            return False
+        if sx > otx1:
+            return False
+        if sy1 < oty:
+            return False
+        if sy > oty1:
+            return False
+        return True   
+
+    def do_work(self, dt):
+        if not self.target:
+            return
+        if (not self.path) or self.distance_to(self.target.pos) < min(self.target.show_wid, self.target.show_hei) or self.collides_with_target():
+           if (not self.changed_anim_state):
+               self.mobAnimation.set_state(image_loader.MobState.ATTACKS, dt)
+               tx, ty = self.target.pos
+               x, y = self.pos
+               dx, dy = tx - x, ty - y
+               self.mobAnimation.update_facing((dx, dy)) 
+           if self._attack_accumulator > self._attack_latency:
+               self.attack(self.target) 
+               self._attack_accumulator = 0
+           else:
+               self._attack_accumulator += dt
+        else:
+            if (not self.changed_anim_state):
+               self.mobAnimation.set_state(image_loader.MobState.MOVES, dt)
+            self.move(dt)
+
+    def attack(self, target):
+        target.take_damage(self.damage)
+
+    def move(self, dt):
+        """Плавное движение по маршруту (вызывается каждый кадр)."""
+        if not self.path:
+            return
+        target_cell = self.path[0]
+        target_pos = (target_cell[0] + 0.5, target_cell[1] + 0.5)
+        dx = target_pos[0] - self.pos[0]
+        dy = target_pos[1] - self.pos[1]
+        self.mobAnimation.update_facing((dx, dy))
+        distance = math.hypot(dx, dy)
+        if distance < 0.001:
+            self.pos = target_pos
+            self.path.pop(0)
+            return
+        step = self.speed * dt
+        if step >= distance:
+            self.pos = target_pos
+            self.path.pop(0)
+        else:
+            self.pos = (self.pos[0] + dx / distance * step,
+                        self.pos[1] + dy / distance * step)
+
+
+    def update(self, dt, enemies):
+        """
+        Обновление моба:
+        - раз в секунду ищет новую цель и пересчитывает путь (если цель изменилась или путь пуст);
+        - каждый кадр двигается по текущему маршруту.
+        """
+        if self.prev_health != self.prev_health:
+            self.mobAnimation.set_state(image_loader.MobState.DAMAGED, dt)
+            self.changed_anim_state = True
+
+        if self.burn_timer > 0:
+            self.burn_timer -= dt
+            self.take_damage(5 * dt)
+
+        if self.slow_timer > 0:
+            self.slow_timer -= dt
+            self.speed = self.base_speed / 3
+            self._attack_latency = self.base_attack_latency * 1.75
+        else:
+            self.speed = self.base_speed
+            self._attack_latency = self.base_attack_latency
+
+        self._accumulator += dt
+        if self._accumulator >= 1.0:
+            self._accumulator = 0.0
+            # 1) обновляем цель
+            self.find_target(enemies)
+            # 2) если цель изменилась или маршрут пуст – пересчитываем путь
+            if self.target != self._prev_target or not self.path:
+                self.pathfind()
+                self._prev_target = self.target
+        # движение выполняется каждый кадр
+        self.do_work(dt)
+
+    def draw(self, canvas, scrx, scry, tile_width, tile_height):
+        px, py = self.pos
+        wid, hei = self.show_wid, self.show_hei
+        sw = wid * tile_width
+        sh = hei * tile_height
+
+        x = scrx + tile_width * px #+ offset_x
+        y = scry + tile_height * py #+ offset_y
+
+        #offset_x = (tile_width - sw) / 2
+        #offset_y = (tile_height - sh) / 2  возможно лучше чтобы 
+        #отрисовывался начиная с центар, но тогда может быть атака будет выглядеть криво
+        
+        sprite_surf = self.mobAnimation.get_animation(sw, sh)
+        
+        if (hasattr(self, 'burn_timer') and self.burn_timer > 0) or (hasattr(self, 'slow_timer') and self.slow_timer > 0):
+            sprite_surf = sprite_surf.copy()
+
+            is_red_flash = (self.burn_timer > 0) and (int(self.burn_timer * 4) % 2 == 0)
+
+            if is_red_flash:
+                sprite_surf.fill((255, 100, 100), special_flags=pygame.BLEND_RGB_MULT)
+            elif self.slow_timer > 0:
+                sprite_surf.fill((130, 200, 255), special_flags=pygame.BLEND_RGB_MULT)
+        
+        canvas.blit(sprite_surf, (x, y))
+        
+class Projectile:
+
+    def __init__(self, pos, target, speed=8.0, damage=0):
+        self.x, self.y = pos
+        self.target = target
+        self.speed = speed
+        self.damage = damage 
+        self.alive = True
+        # Добавляем серую анимацию "normal" на 4 кадра
+        self.animation = image_loader.projectileAnimation(proj_type="normal", num_frames=4, frame_duration=0.08)
+
+    def update(self, dt):
+        if self.target is None or self.target.health <= 0:
+            self.alive = False
+            return
+        
+        tx, ty = self.target.pos
+        dx, dy =  tx - self.x, ty - self.y
+        dist = (dx**2 + dy**2)**0.5
+
+        if dist < 0.15:
+            self.on_hit(self.target)
+            self.alive = False
+            return
+        
+        step = self.speed * dt 
+        if step >= dist:
+            self.x, self.y = tx, ty
+        else:
+            self.x += dx / dist * step
+            self.y += dy / dist * step
+
+        if self.alive:
+            self.animation.update(dt)
+
+    def on_hit(self, target):
+            target.take_damage(self.damage)
+
+    def draw(self, canvas, scrx, scry, tile_width, tile_height):
+            x = scrx + tile_width * self.x
+            y = scry + tile_height * self.y
+
+            proj_size = int(tile_width * 2.0)
+
+            scaled_sprite = self.animation.get_animation(proj_size, proj_size)
+
+            if self.target:
+                tx, ty = self.target.pos
+                dx, dy = tx - self.x, ty - self.y
+                angle = math.degrees(math.atan2(-dy, dx))
+                final_sprite = pygame.transform.rotate(scaled_sprite, angle)
+            else:
+                final_sprite = scaled_sprite
+
+            rect = final_sprite.get_rect(center=(int(x), int(y)))
+            canvas.blit(final_sprite, rect.topleft)
+
+class FireProjectile(Projectile):
+
+    def __init__(self, pos, target, speed=8.0, damage=0):
+        super().__init__(pos, target, speed, damage)
+        # создаем анимацию: тип "fire", 4 кадра, скорость смены 0.08 сек
+        self.animation = image_loader.projectileAnimation(proj_type="fire", num_frames=4, frame_duration=0.08)
+
+    def update(self, dt):
+        super().update(dt)
+        if self.alive:
+            self.animation.update(dt) # обновляем кадры во времени
+
+    def on_hit(self, target):
+        super().on_hit(target)
+        target.burn_timer = 5.0
+
+    def draw(self, canvas, scrx, scry, tile_width, tile_height):
+        x = scrx + tile_width * self.x
+        y = scry + tile_height * self.y
+
+        # определяем размер снаряда на экране 
+        proj_size = int(tile_width * 2.0)
+
+        # получаем текущий отмасштабированный кадр из нашего нового класса
+        scaled_sprite = self.animation.get_animation(proj_size, proj_size)
+
+        # поворачиваем по направлению полета
+        if self.target:
+            tx, ty = self.target.pos
+            dx, dy = tx - self.x, ty - self.y
+            angle = math.degrees(math.atan2(-dy, dx)) 
+            final_sprite = pygame.transform.rotate(scaled_sprite, angle) 
+        else:
+            final_sprite = scaled_sprite
+            
+        # Центрируем повернутый спрайт, чтобы он летел ровно и гладко
+        rect = final_sprite.get_rect(center=(int(x), int(y))) 
+        canvas.blit(final_sprite, rect.topleft) 
+
+class IceProjectile(Projectile):
+
+    def __init__(self, pos, target, speed=8.0, damage=0):
+        super().__init__(pos, target, speed, damage) 
+        # Создаем анимацию: тип "ice", 4 кадка, скорость смены 0.12 сек
+        self.animation = image_loader.projectileAnimation(proj_type="ice", num_frames=4, frame_duration=0.12)
+
+    def update(self, dt):
+        super().update(dt) 
+        if self.alive:
+            self.animation.update(dt)
+
+    def on_hit(self, target):
+        super().on_hit(target)
+        target.slow_timer = 5.0
+
+    def draw(self, canvas, scrx, scry, tile_width, tile_height):
+        x = scrx + tile_width * self.x
+        y = scry + tile_height * self.y
+
+        proj_size = int(tile_width * 2.0) 
+        scaled_sprite = self.animation.get_animation(proj_size, proj_size)
+        
+        if self.target:
+            tx, ty = self.target.pos 
+            dx, dy = tx - self.x, ty - self.y 
+            angle = math.degrees(math.atan2(-dy, dx)) 
+            final_sprite = pygame.transform.rotate(scaled_sprite, angle) 
+        else:
+            final_sprite = scaled_sprite
+            
+        rect = final_sprite.get_rect(center=(int(x), int(y))) 
+        canvas.blit(final_sprite, rect.topleft) 
+# ------------------------------------------------------------
+# Класс башни (наследуется от GameObject)
+# ------------------------------------------------------------
+class Tower(GameObject):
+
+    COST = 30
+    projectile_cls = Projectile
+
+    def __init__(self, grid, pos, range_radius=9.0, damage=10, attack_speed=1.0, projectile_speed=8.0):
+        super().__init__(grid, pos)
+        self.tower_type = "normal"
+        self.range = range_radius   # радиус атаки в клетках
+        self.health = 50
+        self.damage = damage
+        self.attack_speed = attack_speed
+        self.projectile_speed = projectile_speed
+        self._cooldown = 0.0
+        self.target = None  
+        self.projectiles = []
+
+    def distance_to(self, pos):
+        sx, sy = self.pos
+        otherx, othery = pos
+        dx, dy =  otherx - sx, othery - sy
+        return (dx**2 + dy**2)**0.5
+    
+    def find_target(self, enemies):
+        # выбирает ближайшего врага в радиусе атаки
+        #for e in enemies:
+            #print(type(e).__name__)
+        in_range = [e for e in enemies if self.distance_to(e.pos) <= self.range]
+        if not in_range:
+            self.target = None
+            return
+        self.target = min(in_range, key=lambda e: self.distance_to(e.pos))
+
+    def update(self, dt, enemies):
+        self._cooldown -= dt
+
+        if (self.target is None or self.target not in enemies or self.distance_to(self.target.pos) > self.range):
+            self.find_target(enemies)
+
+        if self.target is not None and self._cooldown <= 0:
+            self.shoot(self.target)
+            self._cooldown = 1.0 / self.attack_speed
+
+        for p in self.projectiles:
+            p.update(dt)
+        self.projectiles = [p for p in self.projectiles if p.alive]
+
+    def shoot(self, target):
+        projectile = self.projectile_cls(self.pos, target, speed=self.projectile_speed, damage=self.damage)
+        self.projectiles.append(projectile)
+
+    def draw(self, canvas, scrx, scry, tile_width, tile_height):
+        px, py = self.pos
+        wid, hei = self.show_wid, self.show_hei
+        sw = self.show_wid * tile_width
+        sh = self.show_hei * tile_height
+        x = scrx + tile_width * px# - wid/2
+        y = scry + tile_height * py #- hei/2
+        # offset_x = (tile_width - sw) / 2
+        # offset_y = (tile_height - sh) / 2
+        
+        # x = scrx + tile_width * px + offset_x
+        # y = scry + tile_height * py 
+        #print(self.health)
+        #pygame.draw.rect(canvas, (0,0,255), (x, y, wid, hei))
+        sprite = image_loader.towerImage.get_tower_sprite(self.tower_type, sw, sh)
+        
+        canvas.blit(sprite, (int(x), int(y)))
+
+        for p in self.projectiles:
+            p.draw(canvas, scrx, scry, tile_width, tile_height)
+
+class FireTower(Tower):
+
+    COST = 70
+    projectile_cls = FireProjectile
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)  
+        self.tower_type = "fire"
+
+class IceTower(Tower):
+
+    COST = 70
+    projectile_cls = IceProjectile
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)  # Запускаем базовый конструктор Tower
+        self.tower_type = "ice"
+
+class WallTower(Tower):
+
+    COST = 20
+
+    def __init__(self, grid, pos):
+        super().__init__(grid, pos)
+        self.health = 100
+
+    def update(self, dt, enemies):
+        pass
+
+        
