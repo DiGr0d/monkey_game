@@ -7,8 +7,6 @@ import game_widget
 
 class GameScreen:
 
-    #черновик игрового экрана
-
     STATUS_BAR_HEIGHT_RATIO = 0.08
     RIGHT_PANEL_WIDTH_RATIO = 0.25
     GAME_PANEL_WIDTH_RATIO = 1 - RIGHT_PANEL_WIDTH_RATIO
@@ -26,9 +24,9 @@ class GameScreen:
         #self.game.add_tower(object.Tower(self.game.grid, (10, 10)))
         #self.game.add_tower(object.Tower(self.game.grid, (15, 15)))
         #self.game.add_tower(object.Tower(self.game.grid, (12, 33)))
-        self.game.add_tower(object.FireTower(self.game.grid, (13, 13)))
-        self.game.add_tower(object.IceTower(self.game.grid, (20, 20)))
-        self.game.add_tower(object.WallTower(self.game.grid, (10, 13)))
+        #self.game.add_tower(object.FireTower(self.game.grid, (13, 13)))
+        #self.game.add_tower(object.IceTower(self.game.grid, (20, 20)))
+        #self.game.add_tower(object.WallTower(self.game.grid, (10, 13)))
         self.works = True
 
         width, height = game_engine.screen.get_size()
@@ -38,6 +36,7 @@ class GameScreen:
         self.h = kwargs.get("height", height)
 
         self._context_panel_label = None
+        self._paused = False
         self._build_layout()
         self.select_tower_menu = None
 
@@ -53,6 +52,10 @@ class GameScreen:
         self.save_rect = pygame.Rect(self.x + self.w - (right_panel_w / 3) * 2, self.y + self.h - status_bar_h, right_panel_w / 3 + 1, status_bar_h)
         self.pause_rect = pygame.Rect(self.x + self.w - right_panel_w, self.y + self.h - status_bar_h, right_panel_w / 3, status_bar_h)
         self.name_rect = pygame.Rect(self.x, self.y + self.h - status_bar_h, self.w - right_panel_w, status_bar_h)
+
+        gameover_w, gameover_h = 420, 200
+        self.gameover_rect = pygame.Rect((self.w - gameover_w) // 2, (self.h - gameover_h) // 2, gameover_w, gameover_h)
+        self.gameover_menu_rect = pygame.Rect(self.gameover_rect.x + (gameover_w - 160) // 2, self.gameover_rect.bottom - 60, 160, 40)
 
     def switch_on(self):
         self.works = True
@@ -86,7 +89,7 @@ class GameScreen:
 
         #draw(self.field_rect, self.game_engine.BLUE, "Game field")
         self.game.show()
-        draw(self.status_bar_rect, self.game_engine.GRAY, "Status-bar")
+        self._draw_status_bar(scr)
         draw(self.exit_rect, (240, 150, 150), "X", icon_font)
         draw(self.settings_rect, (200, 200, 240), "*", icon_font)
         draw(self.right_panel_rect, (250, 240, 180) if self._context_panel_label else (230, 230, 230), self._context_panel_label)
@@ -96,8 +99,34 @@ class GameScreen:
         if self.select_tower_menu:
             self.select_tower_menu.show()
 
+
+        if self.game.game_over:
+            draw(self.gameover_rect, (250, 220, 220), "ПОРАЖЕНИЕ")
+            draw(self.gameover_menu_rect, (230, 230, 230), "В меню", font)
+
+    def _draw_status_bar(self, scr):
+        status_font = pygame.font.Font(None, 24)
+        pygame.draw.rect(scr, self.game_engine.GRAY, self.status_bar_rect)
+        pygame.draw.rect(scr, self.game_engine.BLACK, self.status_bar_rect, 1)
+
+        parts = [
+            f"Монет: {self.game.gold}",
+            f"Врагов: {len(self.game.mobs)}",
+            f"Башен: {len(self.game.towers)}",
+            f"Волна: {self.game.wave_number}",
+        ]
+
+        n = len(parts)
+        slot_w = self.status_bar_rect.width / n
+        for i, text in enumerate(parts):
+            surf = status_font.render(text, True, self.game_engine.BLACK)
+            cx = self.status_bar_rect.x + slot_w * i + slot_w / 2
+            cy = self.status_bar_rect.centery
+            rect = surf.get_rect(center=(cx, cy))
+            scr.blit(surf, rect)
+
     def update_game(self, dt):
-        if self.works and self.game:
+        if self.works and self.game and not self._paused:
             self.game.update(dt)
 
     def process_event(self, event, **kwargs):
@@ -106,6 +135,22 @@ class GameScreen:
         if event.type != pygame.MOUSEBUTTONDOWN or event.button != 1:
             return
         pos = event.pos
+
+        if self.pause_rect.collidepoint(pos):
+            self._paused = not self._paused
+            return
+        
+        if self._paused:
+            if self.exit_rect.collidepoint(pos):
+                self._exit()
+            if self.settings_rect.collidepoint(pos):
+                print("Настройки: пока не реализовано")
+            return     
+
+        if self.game.game_over:
+            if self.gameover_menu_rect.collidepoint(pos):
+                self._exit()
+            return
 
         if self.field_rect.collidepoint(pos):
             tw, th = self.game.grid.width, self.game.grid.height
@@ -198,6 +243,7 @@ class GameScreen:
 
 
 class select_tower_menu(menu.Menu):
+
     def __init__(self, relx, rely, relw, relh, cur_tile, parent):
         super().__init__(parent.game_engine)
         self.rel_x = relx
@@ -205,25 +251,37 @@ class select_tower_menu(menu.Menu):
         self.rel_w = relw
         self.rel_h = relh
         self.game = parent.game
-        self.buttons = [{"name": "Tower", "callback": lambda: self.add_tower()},
-                        {"name": "FireTower", "callback": lambda: self.add_firetower()},
-                        {"name": "IceTower", "callback": lambda: self.add_icetower()},
-                        {"name": "WallTower", "callback": lambda: self.add_walltower()}]
+        self.parent = parent
+        self.buttons = [{"name": f"Tower ({object.Tower.COST})", "callback": lambda: self.add_tower()},
+                        {"name": f"FireTower ({object.FireTower.COST})", "callback": lambda: self.add_firetower()},
+                        {"name": f"IceTower ({object.IceTower.COST})", "callback": lambda: self.add_icetower()},
+                        {"name": f"WallTower ({object.WallTower.COST})", "callback": lambda: self.add_walltower()}]
         self.cur_tile = cur_tile
         self.update_geometry(*parent.game_engine.screen.get_size())
         
 
     def add_tower(self):
-        self.game.add_tower(object.Tower(self.game.grid, self.cur_tile))
+        self._try_build(object.Tower)
 
     def add_firetower(self):
-        self.game.add_tower(object.FireTower(self.game.grid, self.cur_tile))
+        self._try_build(object.FireTower)
 
     def add_icetower(self):
-        self.game.add_tower(object.IceTower(self.game.grid, self.cur_tile))
+        self._try_build(object.IceTower)
 
     def add_walltower(self):
-        self.game.add_tower(object.WallTower(self.game.grid, self.cur_tile))
+        self._try_build(object.WallTower)
+
+    def _try_build(self, tower_cls):
+        cost = tower_cls.COST
+        if self.game.gold < cost:
+            print(f"Недостаточно золота для {tower_cls.__name__} (нужно {cost}, есть {self.game.gold})")
+            return
+        self.game.gold -= cost
+        self.game.add_tower(tower_cls(self.game.grid, self.cur_tile))
+
+        self.parent.select_tower_menu = None
+        self.parent._context_panel_label = None
 
     def show(self):
         self.update_geometry(*self.game_engine.screen.get_size())

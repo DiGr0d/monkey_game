@@ -21,16 +21,20 @@ def GridFromMapGrid(MapGrid):
 
 
 class Game:
-    WAVE_COOLDOWN = 10.0
-    SPAWNPOINT_RADIUS = 3
+    WAVE_COOLDOWN = 15.00
+    SPAWNPOINT_RADIUS = 5
+    STARTING_GOLD = 60
+    KILL_REWARD = 10
+
     def __init__(self, parent, rel_x, rel_y, rel_w, rel_h, mapGrid=None, **kwargs):
         self.grid = GridFromMapGrid(mapGrid)
         self.mapGrid = mapGrid  
         if "spawnpoint" in kwargs:
             self.spawnpoint = kwargs["spawnpoint"]
         else:
-            self.spawnpoint = self.find_spawnpoint() 
+            self.spawnpoint = self.find_spawnpoint()
         self.wave_number = 1
+        self.wave_cooldown_accumulator = self.WAVE_COOLDOWN
         self.parent = parent
         self.rel_x = rel_x
         self.rel_y = rel_y
@@ -38,8 +42,37 @@ class Game:
         self.rel_h = rel_h
         self.mobs = []
         self.towers = []
+        self.gold = self.STARTING_GOLD
+        self.game_over = False
+        self.spawn_starting_walls()
+
+    def spawn_starting_walls(self, count=None):
+        """Ставит 2-3 стены на случайные проходимые (не гора) клетки при старте игры."""
+        if count is None:
+            count = random.randint(2, 3)
+        map_w, map_h = self.mapGrid.get_size()
+
+        margin_x = max(1, map_w // 4)
+        margin_y = max(1, map_h // 4)
+
+        def is_central(x, y):
+            return margin_x <= x < map_w - margin_x and margin_y <= y < map_h - margin_y
+
+        central_tiles = [(x, y) for y in range(map_h) for x in range(map_w)
+                          if is_central(x, y) and self.mapGrid.field[y][x].is_buildable()]
+
+        if len(central_tiles) < count:
+            # на маленькой карте в центре может не хватить свободных клеток - берём со всей карты
+            central_tiles = [(x, y) for y in range(map_h) for x in range(map_w)
+                              if self.mapGrid.field[y][x].is_buildable()]
+
+        random.shuffle(central_tiles)
+        for mx, my in central_tiles[:count]:
+            fine_pos = (mx * 4 + 2, my * 4 + 2)   # центр тайла в "мелкой" сетке (1 тайл = 4x4)
+            self.add_tower(object.WallTower(self.grid, fine_pos))    
 
     def spawn_wave(self):
+        self.wave_number += 1
         spx, spy = self.spawnpoint
         x, y = max(0, spx), max(0, spy)
         wid, hei = (Game.SPAWNPOINT_RADIUS * 2 for _ in range(2))
@@ -48,9 +81,10 @@ class Game:
             j = random.randint(x, x + wid - 1) 
             self.spawn_mob(j, i)
 
-    def spawn_mob(x, y):
-        pass
     
+    def spawn_mob(self, x, y):
+        self.add_mob(object.Mob(self.grid, (x, y)))
+        
     def find_spawnpoint(self):
         for i in range(self.grid.height):
             for j in range(self.grid.width):
@@ -69,9 +103,17 @@ class Game:
         self.towers.append(tower)
 
     def update(self, dt):
+        self.wave_cooldown_accumulator-=dt
+        if self.wave_cooldown_accumulator <= 0:
+            self.wave_cooldown_accumulator = Game.WAVE_COOLDOWN
+            self.spawn_wave()
         # 1) Обновляем всех мобов (передаём им список всех мобов как потенциальных врагов)
         for mob in self.mobs:
             mob.update(dt, self.towers)
+
+        for mob in self.mobs:
+            if mob.health <= 0:
+                self.gold += self.KILL_REWARD
 
         # 2) Удаляем мёртвых мобов (health <= 0)
         self.mobs = [mob for mob in self.mobs if mob.health > 0]
@@ -81,6 +123,10 @@ class Game:
             if hasattr(tower, 'update'):
                 tower.update(dt, self.mobs)   # можно передавать мобов для стрельбы
         self.towers = [tower for tower in self.towers if tower.health > 0]
+
+        # 4) Поражение - если башен совсем не осталось
+        if not self.towers:
+            self.game_over = True
 
     def ShowMapGrid(self, canvas, parx, pary, tw, th):
         gr_x, gr_y = parx, pary

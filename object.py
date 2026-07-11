@@ -66,7 +66,7 @@ class GameObject:
         pass
 
 class Mob(GameObject):
-    def __init__(self, grid, pos, speed=2.0, health=100):
+    def __init__(self, grid, pos, speed=3.0, health=50):
         super().__init__(grid, pos, health)
         self.base_speed = speed
         self.path = []             # текущий маршрут (без стартовой клетки)
@@ -85,7 +85,7 @@ class Mob(GameObject):
         self._attack_latency = self.base_attack_latency
         self.burn_timer = 0.0
         self.slow_timer = 0.0
-        
+    
         
     @lru_cache(maxsize=100)
     def path_cost(self, sx, sy, gx, gy):
@@ -392,6 +392,7 @@ class IceProjectile(Projectile):
 # ------------------------------------------------------------
 class Tower(GameObject):
 
+    COST = 30
     projectile_cls = Projectile
 
     def __init__(self, grid, pos, range_radius=9.0, damage=10, attack_speed=1.0, projectile_speed=8.0):
@@ -414,6 +415,8 @@ class Tower(GameObject):
     
     def find_target(self, enemies):
         # выбирает ближайшего врага в радиусе атаки
+        #for e in enemies:
+            #print(type(e).__name__)
         in_range = [e for e in enemies if self.distance_to(e.pos) <= self.range]
         if not in_range:
             self.target = None
@@ -461,6 +464,7 @@ class Tower(GameObject):
 
 class FireTower(Tower):
 
+    COST = 70
     projectile_cls = FireProjectile
     
     def __init__(self, *args, **kwargs):
@@ -469,6 +473,7 @@ class FireTower(Tower):
 
 class IceTower(Tower):
 
+    COST = 70
     projectile_cls = IceProjectile
     
     def __init__(self, *args, **kwargs):
@@ -476,6 +481,8 @@ class IceTower(Tower):
         self.tower_type = "ice"
 
 class WallTower(Tower):
+
+    COST = 20
 
     def __init__(self, grid, pos):
         super().__init__(grid, pos)
